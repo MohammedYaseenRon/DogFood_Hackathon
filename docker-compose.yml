@@ -1,0 +1,78 @@
+services:
+
+  backend:
+
+    build:
+
+      context: ./backend
+
+      dockerfile: Dockerfile
+
+    volumes:
+
+      - backend_data:/data
+
+      - ./dog_food/fixtures.json:/app/dog_food/fixtures.json:ro
+
+    environment:
+
+      DATABASE_URL: sqlite:////data/dev.db
+
+      PORT: 4000
+
+      FIXTURES_PATH: /app/dog_food/fixtures.json
+
+    healthcheck:
+
+      test:
+
+        [
+
+          "CMD",
+
+          "python",
+
+          "-c",
+
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health')",
+
+        ]
+
+      interval: 5s
+
+      timeout: 3s
+
+      retries: 10
+
+
+
+  frontend:
+
+    build:
+
+      context: ./frontend
+
+      dockerfile: Dockerfile
+
+    ports:
+
+      - "8080:8080"
+
+    environment:
+
+      BACKEND_URL: http://backend:4000
+
+      PORT: 8080
+
+    depends_on:
+
+      backend:
+
+        condition: service_healthy
+
+
+
+volumes:
+
+  backend_data:
+

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+.env
+.env.local
+*.db
+*.db-journal
+.DS_Store
+npm-debug.log*
+acceptance-report.txt
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
