@@ -52,7 +52,7 @@ export function RoleSection() {
     <section className="bg-zinc-50 py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#3770FF]">
             Built for everyone
           </p>
           <h2 className="font-display mt-2 text-3xl font-bold text-zinc-900 sm:text-4xl">
@@ -91,7 +91,7 @@ export function RoleSection() {
                   <ButtonLink
                     href={role.href}
                     variant="ghost"
-                    className="mt-4 -ml-2 text-violet-600 hover:text-violet-800"
+                    className="mt-4 -ml-2 text-[#3770FF] hover:text-blue-700"
                   >
                     {role.cta} →
                   </ButtonLink>

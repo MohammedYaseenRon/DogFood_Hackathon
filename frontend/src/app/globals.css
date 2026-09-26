@@ -69,6 +69,19 @@ body {
   animation: marquee 30s linear infinite;
 }
 
+@keyframes marquee-slow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 45s linear infinite;
+}
+
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
+}
+
 /* Fade in up */
 @keyframes fade-in-up {
   from {

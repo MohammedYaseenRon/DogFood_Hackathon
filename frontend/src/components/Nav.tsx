@@ -6,7 +6,13 @@ import { useEffect, useState } from "react";
 import { fetchMeClient, type UserInfo } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 
-const links = [
+const homeLinks = [
+  { href: "/projects", label: "Gallery" },
+  { href: "/event", label: "Event" },
+  { href: "/login", label: "About" },
+];
+
+const appLinks = [
   { href: "/projects", label: "Gallery" },
   { href: "/event", label: "Event" },
   { href: "/participant", label: "Participant" },
@@ -26,6 +32,7 @@ export function Nav() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const isHome = pathname === "/";
+  const links = isHome ? homeLinks : appLinks;
 
   useEffect(() => {
     fetchMeClient().then(setUser);
@@ -37,31 +44,27 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const transparent = isHome && !scrolled;
+  const onHero = isHome && !scrolled;
 
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
-        transparent
-          ? "border-b border-white/5 bg-transparent"
-          : "border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur-xl"
+        onHero
+          ? "border-b border-transparent bg-white/80 backdrop-blur-md"
+          : "border-b border-zinc-200/80 bg-white/95 shadow-sm backdrop-blur-xl"
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 text-sm font-bold text-white shadow-lg shadow-violet-500/25">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3770FF] text-sm font-bold text-white shadow-md shadow-blue-500/20">
             D
           </span>
-          <span
-            className={`font-display text-xl font-bold ${
-              transparent ? "text-white" : "text-zinc-900"
-            }`}
-          >
+          <span className="font-display text-xl font-bold text-zinc-900">
             Dogfood
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
             const active = pathname.startsWith(link.href);
             return (
@@ -70,12 +73,8 @@ export function Nav() {
                 href={link.href}
                 className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
                   active
-                    ? transparent
-                      ? "bg-white/10 text-white"
-                      : "bg-violet-50 text-violet-700"
-                    : transparent
-                      ? "text-zinc-300 hover:bg-white/10 hover:text-white"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                    ? "text-[#3770FF]"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
                 {link.label}
@@ -88,13 +87,17 @@ export function Nav() {
           {user ? (
             <Badge tone={roleTone[user.role] ?? "default"}>{user.role}</Badge>
           ) : null}
+          {isHome ? (
+            <Link
+              href="/organizer/dashboard"
+              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 sm:inline-block"
+            >
+              Organize a hackathon
+            </Link>
+          ) : null}
           <Link
             href="/login"
-            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
-              transparent
-                ? "bg-white text-zinc-900 hover:bg-zinc-100"
-                : "bg-zinc-900 text-white hover:bg-zinc-800"
-            }`}
+            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
           >
             {user ? "Account" : "Sign in"}
           </Link>

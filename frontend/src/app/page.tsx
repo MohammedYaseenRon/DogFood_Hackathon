@@ -1,22 +1,30 @@
-import { CtaSection } from "@/components/home/CtaSection";
-import { FeaturesSection } from "@/components/home/FeaturesSection";
+import { CommunitySection } from "@/components/home/CommunitySection";
+import { DropJawsStats } from "@/components/home/DropJawsStats";
 import { HappeningNow } from "@/components/home/HappeningNow";
 import { HeroSection } from "@/components/home/HeroSection";
+import { ProjectStrip } from "@/components/home/ProjectStrip";
 import { RoleSection } from "@/components/home/RoleSection";
-import { StatsMarquee } from "@/components/home/StatsMarquee";
-import { fetchPublicStats } from "@/lib/api";
+import { ShowcaseSections } from "@/components/home/ShowcaseSections";
+import { Testimonials } from "@/components/home/Testimonials";
+import { fetchEvent, fetchProjects, fetchPublicStats } from "@/lib/api";
 
 export default async function HomePage() {
-  const stats = await fetchPublicStats();
+  const [stats, event, projects] = await Promise.all([
+    fetchPublicStats(),
+    fetchEvent(),
+    fetchProjects(),
+  ]);
 
   return (
-    <main>
-      <HeroSection stats={stats} />
-      <StatsMarquee />
-      <HappeningNow stats={stats} />
+    <main className="bg-white">
+      <HeroSection />
+      <DropJawsStats stats={stats} />
+      <HappeningNow stats={stats} event={event} />
+      <Testimonials />
+      <ShowcaseSections />
+      <ProjectStrip projects={projects} />
       <RoleSection />
-      <FeaturesSection />
-      <CtaSection />
+      <CommunitySection />
     </main>
   );
 }
