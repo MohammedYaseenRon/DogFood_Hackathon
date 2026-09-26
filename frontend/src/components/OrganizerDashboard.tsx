@@ -17,7 +17,11 @@ export function OrganizerDashboard() {
   }, []);
 
   if (loading) {
-    return <p className="text-slate-500">Loading organizer dashboard...</p>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+      </div>
+    );
   }
 
   if (!stats) {
@@ -27,7 +31,7 @@ export function OrganizerDashboard() {
         description="Log in as the organizer to view judging progress and export results."
         action={
           <ButtonLink href="/login" variant="primary">
-            Go to login
+            Sign in as organizer
           </ButtonLink>
         }
       />
@@ -37,15 +41,18 @@ export function OrganizerDashboard() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-3">
-        <ButtonLink href="/api/export.csv" variant="primary">
+        <ButtonLink href="/api/export.csv" size="lg">
           Download CSV export
+        </ButtonLink>
+        <ButtonLink href="/event" variant="secondary" size="lg">
+          Event settings
         </ButtonLink>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Projects" value={stats.totalProjects} />
         <Stat label="Judges" value={stats.totalJudges} />
-        <Stat label="Scores submitted" value={stats.totalScores} />
+        <Stat label="Scores submitted" value={stats.totalScores} variant="gradient" />
         <Stat
           label="Completion"
           value={`${stats.completionPercent}%`}
@@ -53,37 +60,47 @@ export function OrganizerDashboard() {
         />
       </div>
 
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="font-semibold text-slate-900">Judge progress</h2>
+      <Card variant="elevated" className="overflow-hidden p-0">
+        <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-5">
+          <h2 className="font-display text-lg font-bold text-zinc-900">
+            Judge progress
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Live tracking of scoring completion across all judges
+          </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="bg-zinc-50 text-zinc-500">
               <tr>
-                <th className="px-6 py-3 font-medium">Judge</th>
-                <th className="px-6 py-3 font-medium">Completed</th>
-                <th className="px-6 py-3 font-medium">Assigned</th>
-                <th className="px-6 py-3 font-medium">Progress</th>
+                <th className="px-6 py-3 font-semibold">Judge</th>
+                <th className="px-6 py-3 font-semibold">Completed</th>
+                <th className="px-6 py-3 font-semibold">Assigned</th>
+                <th className="px-6 py-3 font-semibold">Progress</th>
               </tr>
             </thead>
             <tbody>
               {stats.judgeProgress.map((judge) => (
-                <tr key={judge.id} className="border-t border-slate-100">
-                  <td className="px-6 py-3 font-medium text-slate-900">
+                <tr
+                  key={judge.id}
+                  className="border-t border-zinc-100 transition hover:bg-zinc-50/50"
+                >
+                  <td className="px-6 py-4 font-medium text-zinc-900">
                     {judge.name}
                   </td>
-                  <td className="px-6 py-3">{judge.completed}</td>
-                  <td className="px-6 py-3">{judge.assigned}</td>
-                  <td className="px-6 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
+                  <td className="px-6 py-4 text-zinc-600">{judge.completed}</td>
+                  <td className="px-6 py-4 text-zinc-600">{judge.assigned}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2.5 w-28 overflow-hidden rounded-full bg-zinc-100">
                         <div
-                          className="h-full bg-indigo-600"
+                          className="h-full rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 transition-all"
                           style={{ width: `${judge.percent}%` }}
                         />
                       </div>
-                      <span className="text-slate-500">{judge.percent}%</span>
+                      <span className="font-semibold text-violet-600">
+                        {judge.percent}%
+                      </span>
                     </div>
                   </td>
                 </tr>

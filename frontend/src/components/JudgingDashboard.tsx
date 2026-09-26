@@ -69,7 +69,11 @@ export function JudgingDashboard() {
   const percent = total ? Math.round((scored / total) * 100) : 0;
 
   if (loading) {
-    return <p className="text-slate-500">Loading judge dashboard...</p>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+      </div>
+    );
   }
 
   if (error && assignments.length === 0) {
@@ -79,7 +83,7 @@ export function JudgingDashboard() {
         description="Log in as Judge A or Judge B to review assigned projects and scores."
         action={
           <ButtonLink href="/login" variant="primary">
-            Go to login
+            Sign in as judge
           </ButtonLink>
         }
       />
@@ -88,33 +92,37 @@ export function JudgingDashboard() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-500">Review progress</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {scored} / {total} scored
-            </p>
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg shadow-emerald-500/20">
+        <div className="p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-emerald-100">Review progress</p>
+              <p className="font-display mt-1 text-3xl font-bold text-white">
+                {scored} / {total} scored
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-4xl font-bold text-white">{percent}%</p>
+              <p className="text-xs text-emerald-100">complete</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-indigo-600">{percent}%</p>
-            <p className="text-xs text-slate-500">complete</p>
+          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/20">
+            <div
+              className="h-full rounded-full bg-white transition-all"
+              style={{ width: `${percent}%` }}
+            />
           </div>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full bg-indigo-600 transition-all"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      </Card>
+      </div>
 
       {rubric.length > 0 ? (
         <Card>
-          <h2 className="text-sm font-semibold text-slate-900">Scoring rubric</h2>
+          <h2 className="font-display text-sm font-bold text-zinc-900">
+            Scoring rubric
+          </h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {rubric.map((item) => (
-              <Badge key={item.name} tone="default">
+              <Badge key={item.name} tone="cyan">
                 {item.name} ×{item.weight}
               </Badge>
             ))}
@@ -127,21 +135,26 @@ export function JudgingDashboard() {
         scores.
       </Alert>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {assignments.map((item) => {
           const score = scores.find((s) => s.projectId === item.projectId);
           const isExpanded = expandedId === item.projectId;
 
           return (
-            <Card key={item.projectId}>
+            <Card
+              key={item.projectId}
+              className={`transition ${item.scored ? "border-emerald-200" : ""}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
+                  <h3 className="font-display font-bold text-zinc-900">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-zinc-500">{item.summary}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {score?.weightedTotal != null ? (
-                    <span className="text-sm font-semibold text-indigo-600">
+                    <span className="font-display text-lg font-bold text-violet-600">
                       {score.weightedTotal}
                     </span>
                   ) : null}
@@ -150,21 +163,26 @@ export function JudgingDashboard() {
                   </Badge>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-slate-500">{item.trackName}</p>
+              <p className="mt-2 text-xs font-medium text-zinc-400">
+                {item.trackName}
+              </p>
 
               {score && !isExpanded ? (
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-sm">
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-4 text-sm">
                   {Object.entries(score.criteria).map(([key, value]) => (
-                    <div key={key} className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-xs capitalize text-slate-500">{key}</p>
-                      <p className="font-semibold">{value}</p>
+                    <div
+                      key={key}
+                      className="rounded-xl bg-zinc-50 px-3 py-2"
+                    >
+                      <p className="text-xs capitalize text-zinc-400">{key}</p>
+                      <p className="font-bold text-zinc-900">{value}</p>
                     </div>
                   ))}
                 </div>
               ) : null}
 
               {score?.comment && !isExpanded ? (
-                <p className="mt-3 text-sm text-slate-600">{score.comment}</p>
+                <p className="mt-3 text-sm text-zinc-500">{score.comment}</p>
               ) : null}
 
               <div className="mt-4">

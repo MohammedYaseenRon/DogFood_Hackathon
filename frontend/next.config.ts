@@ -34,6 +34,10 @@ const nextConfig: NextConfig = {
         source: "/api/teams/join/:token",
         destination: `${backendUrl}/api/teams/join/:token`,
       },
+      {
+        source: "/api/teams/mine",
+        destination: `${backendUrl}/api/teams/mine`,
+      },
     ];
   },
 };

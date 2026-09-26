@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans, Sora } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
-const inter = Inter({
+const sora = Sora({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sora",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Dogfood Portal",
-  description: "Hackathon submission and judging platform",
+  title: "Dogfood — Hackathon Portal",
+  description:
+    "Self-hostable hackathon submission and judging platform. Register teams, submit projects, score submissions, and export results.",
 };
 
 export default function RootLayout({
@@ -19,15 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-slate-50 font-sans antialiased">
+    <html lang="en" className={`${sora.variable} ${dmSans.variable}`}>
+      <body className="min-h-screen bg-[#fafafa] font-sans antialiased">
         <Nav />
         {children}
-        <footer className="mt-16 border-t border-slate-200 bg-white py-8">
-          <div className="mx-auto max-w-6xl px-6 text-center text-sm text-slate-500">
-            Dogfood 2026 · Self-hostable hackathon portal
-          </div>
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );

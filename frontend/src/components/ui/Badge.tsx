@@ -1,9 +1,10 @@
 const tones: Record<string, string> = {
-  default: "bg-slate-100 text-slate-700",
-  brand: "bg-indigo-50 text-indigo-700",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-800",
-  danger: "bg-red-50 text-red-700",
+  default: "bg-zinc-100 text-zinc-700",
+  brand: "bg-violet-100 text-violet-700",
+  success: "bg-emerald-100 text-emerald-700",
+  warning: "bg-amber-100 text-amber-800",
+  danger: "bg-red-100 text-red-700",
+  cyan: "bg-cyan-100 text-cyan-700",
 };
 
 export function Badge({
@@ -15,7 +16,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}
     >
       {children}
     </span>

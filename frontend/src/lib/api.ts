@@ -163,4 +163,10 @@ export async function fetchOrganizerStatsClient(): Promise<OrganizerStats | null
   return clientFetch("/api/organizer/stats");
 }
 
+export async function fetchMyTeamClient(): Promise<{
+  team: { name: string; inviteToken: string; inviteUrl: string } | null;
+} | null> {
+  return clientFetch("/api/teams/mine");
+}
+
 export { backendUrl };

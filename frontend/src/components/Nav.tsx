@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 const links = [
   { href: "/projects", label: "Gallery" },
   { href: "/event", label: "Event" },
-  { href: "/projects/new", label: "Submit" },
+  { href: "/participant", label: "Participant" },
   { href: "/judging", label: "Judging" },
   { href: "/organizer/dashboard", label: "Organizer" },
 ];
@@ -24,32 +24,58 @@ const roleTone: Record<string, "brand" | "success" | "warning" | "default"> = {
 export function Nav() {
   const pathname = usePathname();
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const isHome = pathname === "/";
 
   useEffect(() => {
     fetchMeClient().then(setUser);
   }, [pathname]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const transparent = isHome && !scrolled;
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
+    <header
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        transparent
+          ? "border-b border-white/5 bg-transparent"
+          : "border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur-xl"
+      }`}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 text-sm font-bold text-white shadow-lg shadow-violet-500/25">
             D
           </span>
-          <span className="text-lg font-bold text-slate-900">Dogfood</span>
+          <span
+            className={`font-display text-xl font-bold ${
+              transparent ? "text-white" : "text-zinc-900"
+            }`}
+          >
+            Dogfood
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {links.map((link) => {
             const active = pathname.startsWith(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
                   active
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? transparent
+                      ? "bg-white/10 text-white"
+                      : "bg-violet-50 text-violet-700"
+                    : transparent
+                      ? "text-zinc-300 hover:bg-white/10 hover:text-white"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                 }`}
               >
                 {link.label}
@@ -64,9 +90,13 @@ export function Nav() {
           ) : null}
           <Link
             href="/login"
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+              transparent
+                ? "bg-white text-zinc-900 hover:bg-zinc-100"
+                : "bg-zinc-900 text-white hover:bg-zinc-800"
+            }`}
           >
-            {user ? "Account" : "Login"}
+            {user ? "Account" : "Sign in"}
           </Link>
         </div>
       </div>

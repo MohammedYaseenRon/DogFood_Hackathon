@@ -7,14 +7,18 @@ export default async function NewProjectPage() {
   const event = await fetchEvent();
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
+    <main>
       <PageHeader
+        variant="hero"
         title="Submit a project"
-        description="Create a new hackathon submission for your team."
+        description="Create a new hackathon submission for your team. Sign in as a participant first."
       />
-      <Card>
-        <SubmitForm event={event} />
-      </Card>
+
+      <div className="mx-auto max-w-2xl px-6 py-10">
+        <Card variant="elevated">
+          <SubmitForm event={event} />
+        </Card>
+      </div>
     </main>
   );
 }

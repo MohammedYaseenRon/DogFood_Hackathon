@@ -36,11 +36,14 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
     setMessage("Submission received.");
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100 disabled:bg-zinc-50 disabled:text-zinc-400";
+
   return (
     <div className="space-y-6">
       {closed ? (
         <Alert tone="warning" title="Submissions closed">
-          The fixture event closed on{" "}
+          The event closed on{" "}
           {event
             ? new Date(event.submissionsClose).toUTCString()
             : "the deadline"}
@@ -52,21 +55,21 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
             Project title
           </label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={closed}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm disabled:bg-slate-100"
+            className={inputClass}
             placeholder="My awesome hack"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
             Summary
           </label>
           <textarea
@@ -74,12 +77,12 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
             onChange={(e) => setSummary(e.target.value)}
             disabled={closed}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm disabled:bg-slate-100"
+            className={inputClass}
             placeholder="One line of what it does"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
             Repository URL
           </label>
           <input
@@ -87,17 +90,20 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
             onChange={(e) => setRepoUrl(e.target.value)}
             disabled={closed}
             type="url"
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm disabled:bg-slate-100"
+            className={inputClass}
             placeholder="https://github.com/..."
           />
         </div>
 
-        <p className="text-sm text-slate-500">
-          Sign in as a <strong>participant</strong> on the login page before
-          submitting.
+        <p className="text-sm text-zinc-400">
+          Sign in as a <strong className="text-zinc-600">participant</strong>{" "}
+          before submitting.{" "}
+          <a href="/login" className="font-semibold text-violet-600 hover:text-violet-800">
+            Sign in →
+          </a>
         </p>
 
-        <Button type="submit" disabled={closed}>
+        <Button type="submit" disabled={closed} size="lg" className="w-full sm:w-auto">
           Submit project
         </Button>
       </form>
