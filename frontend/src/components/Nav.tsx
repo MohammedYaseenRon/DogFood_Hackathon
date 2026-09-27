@@ -24,7 +24,8 @@ const roleTone: Record<string, "brand" | "success" | "warning" | "default"> = {
   ORGANIZER: "brand",
   JUDGE: "success",
   PARTICIPANT: "warning",
-  ADMIN: "brand",
+  ADMIN: "default",
+  VISITOR: "default",
 };
 
 export function Nav() {
@@ -32,6 +33,7 @@ export function Nav() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const isHome = pathname === "/";
+  const isLogin = pathname === "/login";
   const links = isHome ? homeLinks : appLinks;
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user ? (
+          {user && !isLogin ? (
             <Badge tone={roleTone[user.role] ?? "default"}>{user.role}</Badge>
           ) : null}
           {isHome ? (
@@ -95,12 +97,14 @@ export function Nav() {
               Organize a hackathon
             </Link>
           ) : null}
-          <Link
-            href="/login"
-            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
-          >
-            {user ? "Account" : "Sign in"}
-          </Link>
+          {!isLogin ? (
+            <Link
+              href="/login"
+              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+            >
+              {user ? "Switch role" : "Sign in"}
+            </Link>
+          ) : null}
         </div>
       </div>
     </header>

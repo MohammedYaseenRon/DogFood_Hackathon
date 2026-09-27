@@ -71,6 +71,7 @@ class Event(Base):
     tracks: Mapped[list["Track"]] = relationship(back_populates="event")
     teams: Mapped[list["Team"]] = relationship(back_populates="event")
     rubric: Mapped[list["RubricCriterion"]] = relationship(back_populates="event")
+    prizes: Mapped[list["Prize"]] = relationship(back_populates="event")
 
 
 class Track(Base):
@@ -128,6 +129,22 @@ class Project(Base):
     track: Mapped[Track] = relationship(back_populates="projects")
     scores: Mapped[list["Score"]] = relationship(back_populates="project")
     judge_assignments: Mapped[list["JudgeAssignment"]] = relationship(back_populates="project")
+
+
+class Prize(Base):
+    __tablename__ = "prizes"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String)
+    amount: Mapped[str] = mapped_column(String)
+    rank: Mapped[int] = mapped_column(default=1)
+    track_id: Mapped[str | None] = mapped_column(
+        ForeignKey("tracks.id", ondelete="SET NULL"), nullable=True
+    )
+
+    event: Mapped[Event] = relationship(back_populates="prizes")
+    track: Mapped["Track | None"] = relationship()
 
 
 class RubricCriterion(Base):

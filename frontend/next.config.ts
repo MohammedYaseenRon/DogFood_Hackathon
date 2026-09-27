@@ -38,6 +38,22 @@ const nextConfig: NextConfig = {
         source: "/api/teams/mine",
         destination: `${backendUrl}/api/teams/mine`,
       },
+      {
+        source: "/api/teams",
+        destination: `${backendUrl}/api/teams`,
+      },
+      {
+        source: "/api/projects/mine",
+        destination: `${backendUrl}/api/projects/mine`,
+      },
+      {
+        source: "/api/projects/:id",
+        destination: `${backendUrl}/api/projects/:id`,
+      },
+      {
+        source: "/api/events",
+        destination: `${backendUrl}/api/events`,
+      },
     ];
   },
 };

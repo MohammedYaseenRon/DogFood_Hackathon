@@ -9,6 +9,7 @@ from app.database import SessionLocal, init_db
 from app.models import (
     Event,
     JudgeAssignment,
+    Prize,
     Project,
     ProjectStatus,
     Role,
@@ -26,6 +27,7 @@ TEST_SESSIONS = {
     "judge_a": "jdg_a_91bc",
     "judge_b": "jdg_b_44de",
     "participant": "prt_2e88",
+    "admin": "adm_3c91",
 }
 
 
@@ -127,7 +129,40 @@ def seed() -> None:
             if not row:
                 db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
 
+        default_prizes = [
+            ("Grand prize", "$2,500", 1, None),
+            ("Best developer tools", "$500", 2, "trk_01"),
+            ("Best accessibility hack", "$500", 3, "trk_03"),
+        ]
+        for prize_name, amount, rank, track_fixture in default_prizes:
+            existing_prize = (
+                db.query(Prize)
+                .filter(Prize.event_id == event.id, Prize.name == prize_name)
+                .first()
+            )
+            if existing_prize:
+                continue
+            track_id = track_map.get(track_fixture) if track_fixture else None
+            db.add(
+                Prize(
+                    event_id=event.id,
+                    name=prize_name,
+                    amount=amount,
+                    rank=rank,
+                    track_id=track_id,
+                )
+            )
+
         user_map: dict[str, str] = {}
+
+        admin = get_or_create_user(
+            db,
+            "admin@dogfood.local",
+            role=Role.ADMIN,
+            name="Platform Admin",
+            fixture_id="adm_01",
+        )
+        user_map["admin@dogfood.local"] = admin.id
 
         organizer = get_or_create_user(
             db,
@@ -260,6 +295,7 @@ def seed() -> None:
         upsert_session(db, TEST_SESSIONS["judge_a"], judge_a)
         upsert_session(db, TEST_SESSIONS["judge_b"], judge_b)
         upsert_session(db, TEST_SESSIONS["participant"], first_participant_id)
+        upsert_session(db, TEST_SESSIONS["admin"], admin.id)
 
         db.commit()
 
@@ -268,6 +304,7 @@ def seed() -> None:
         print(f"  judge_a      Cookie: session={TEST_SESSIONS['judge_a']}")
         print(f"  judge_b      Cookie: session={TEST_SESSIONS['judge_b']}")
         print(f"  participant  Cookie: session={TEST_SESSIONS['participant']}")
+        print(f"  admin        Cookie: session={TEST_SESSIONS['admin']}")
     finally:
         db.close()
 

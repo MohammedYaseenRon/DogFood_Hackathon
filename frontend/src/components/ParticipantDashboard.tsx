@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchMeClient, fetchMyTeamClient, type UserInfo } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  fetchMeClient,
+  fetchMyProjectClient,
+  fetchMyTeamClient,
+  type MyProject,
+  type UserInfo,
+} from "@/lib/api";
+import { CreateTeamForm } from "@/components/CreateTeamForm";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
@@ -14,33 +21,6 @@ type TeamInfo = {
   inviteUrl: string;
 } | null;
 
-const steps = [
-  {
-    step: 1,
-    title: "Sign in",
-    description: "Log in as a participant to access submission features.",
-    done: true,
-  },
-  {
-    step: 2,
-    title: "Join a team",
-    description: "Use an invite link from your teammate to join your team.",
-    done: false,
-  },
-  {
-    step: 3,
-    title: "Submit project",
-    description: "Fill in your project details and submit before the deadline.",
-    done: false,
-  },
-  {
-    step: 4,
-    title: "Edit until deadline",
-    description: "Update your draft anytime before submissions close.",
-    done: false,
-  },
-];
-
 export function ParticipantDashboard({
   submissionsOpen,
 }: {
@@ -48,15 +28,24 @@ export function ParticipantDashboard({
 }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [team, setTeam] = useState<TeamInfo | undefined>(undefined);
+  const [project, setProject] = useState<MyProject | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([fetchMeClient(), fetchMyTeamClient()]).then(([u, t]) => {
+  const reload = useCallback(() => {
+    return Promise.all([
+      fetchMeClient(),
+      fetchMyTeamClient(),
+      fetchMyProjectClient(),
+    ]).then(([u, t, p]) => {
       setUser(u);
       setTeam(t?.team ?? null);
-      setLoading(false);
+      setProject(p?.project ?? null);
     });
   }, []);
+
+  useEffect(() => {
+    reload().finally(() => setLoading(false));
+  }, [reload]);
 
   if (loading) {
     return (
@@ -81,14 +70,31 @@ export function ParticipantDashboard({
   }
 
   const hasTeam = team !== null && team !== undefined;
-  const progressSteps = steps.map((s, i) => ({
-    ...s,
-    done: i === 0 ? true : i === 1 ? hasTeam : false,
-  }));
+  const hasProject = project !== null && project !== undefined;
+  const steps = [
+    { step: 1, title: "Sign in", description: "Log in as a participant.", done: true },
+    {
+      step: 2,
+      title: "Join a team",
+      description: "Create a team or join via invite link.",
+      done: hasTeam,
+    },
+    {
+      step: 3,
+      title: "Submit project",
+      description: "Fill in project details and submit.",
+      done: hasProject && project?.status === "SUBMITTED",
+    },
+    {
+      step: 4,
+      title: "Edit until deadline",
+      description: "Update your draft anytime before close.",
+      done: hasProject,
+    },
+  ];
 
   return (
     <div className="space-y-8">
-      {/* Welcome card */}
       <Card variant="elevated" className="overflow-hidden p-0">
         <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-6 text-white">
           <p className="text-sm font-medium text-amber-100">Welcome back</p>
@@ -107,23 +113,21 @@ export function ParticipantDashboard({
         </div>
       </Card>
 
-      {/* Submission status */}
       <Alert tone={submissionsOpen ? "success" : "warning"}>
         {submissionsOpen
-          ? "Submissions are open. You can submit or edit your project until the deadline."
+          ? "Submissions are open. Save drafts or submit before the deadline."
           : "Submissions are closed. No new submissions or edits are allowed."}
       </Alert>
 
-      {/* Progress steps */}
       <div>
         <h3 className="font-display text-lg font-bold text-zinc-900">
           Your journey
         </h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {progressSteps.map((item) => (
+          {steps.map((item) => (
             <Card
               key={item.step}
-              className={`relative ${item.done ? "border-emerald-200 bg-emerald-50/50" : ""}`}
+              className={item.done ? "border-emerald-200 bg-emerald-50/50" : ""}
             >
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
@@ -141,7 +145,6 @@ export function ParticipantDashboard({
         </div>
       </div>
 
-      {/* Team section */}
       <Card>
         <h3 className="font-display text-lg font-bold text-zinc-900">
           Your team
@@ -162,17 +165,37 @@ export function ParticipantDashboard({
             </p>
           </div>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
             <p className="text-sm text-zinc-500">
-              You haven&apos;t joined a team yet. Ask a teammate for an invite
-              link, or sign in and visit their invite URL.
+              Create a new team or join an existing one with an invite link.
             </p>
-            <ButtonLink href="/login" variant="secondary" className="mt-4">
-              Need an invite link?
-            </ButtonLink>
+            <CreateTeamForm onCreated={() => reload()} />
           </div>
         )}
       </Card>
+
+      {hasProject && project ? (
+        <Card>
+          <h3 className="font-display text-lg font-bold text-zinc-900">
+            Your project
+          </h3>
+          <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold text-zinc-900">{project.title}</p>
+              <p className="mt-1 text-sm text-zinc-500">{project.summary}</p>
+              <p className="mt-2 text-xs text-zinc-400">
+                Track: {project.trackName} · Team: {project.teamName}
+              </p>
+            </div>
+            <Badge tone={project.status === "SUBMITTED" ? "success" : "warning"}>
+              {project.status}
+            </Badge>
+          </div>
+          <ButtonLink href="/projects/new" variant="secondary" className="mt-4">
+            Edit project
+          </ButtonLink>
+        </Card>
+      ) : null}
     </div>
   );
 }

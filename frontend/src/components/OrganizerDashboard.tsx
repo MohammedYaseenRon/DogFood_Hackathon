@@ -45,7 +45,10 @@ export function OrganizerDashboard() {
           Download CSV export
         </ButtonLink>
         <ButtonLink href="/event" variant="secondary" size="lg">
-          Event settings
+          View event
+        </ButtonLink>
+        <ButtonLink href="/organizer/event/new" variant="secondary" size="lg">
+          Create event
         </ButtonLink>
       </div>
 

@@ -53,6 +53,27 @@ export default async function EventPage() {
           </dl>
         </Card>
 
+        {(event.prizes ?? []).length > 0 ? (
+          <section>
+            <h2 className="font-display text-xl font-bold text-zinc-900">
+              Prizes
+            </h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(event.prizes ?? []).map((prize) => (
+                <Card key={prize.id} className="transition hover:border-violet-200">
+                  <p className="font-semibold text-zinc-900">{prize.name}</p>
+                  <p className="mt-1 text-lg font-bold text-[#3770FF]">
+                    {prize.amount}
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    {prize.trackName ? `Track: ${prize.trackName}` : "Overall"}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <section>
           <h2 className="font-display text-xl font-bold text-zinc-900">
             Tracks
