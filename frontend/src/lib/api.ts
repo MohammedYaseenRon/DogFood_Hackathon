@@ -238,13 +238,24 @@ export async function saveProjectClient(
   return { project: result.data, error: result.error };
 }
 
-export async function createEventClient(payload: {
+export type EventPayload = {
   name: string;
   submissions_close: string;
-  tracks: Array<{ name: string }>;
+  tracks: Array<{ id?: string; name: string }>;
   prizes: Array<{ name: string; amount: string; rank: number; track_index?: number }>;
-}): Promise<{ event: EventInfo | null; error: string | null }> {
+};
+
+export async function createEventClient(
+  payload: EventPayload,
+): Promise<{ event: EventInfo | null; error: string | null }> {
   const result = await clientPost<{ event: EventInfo }>("/api/events", payload);
+  return { event: result.data?.event ?? null, error: result.error };
+}
+
+export async function updateEventClient(
+  payload: EventPayload,
+): Promise<{ event: EventInfo | null; error: string | null }> {
+  const result = await clientPatch<{ event: EventInfo }>("/api/events", payload);
   return { event: result.data?.event ?? null, error: result.error };
 }
 

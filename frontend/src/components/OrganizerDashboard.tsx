@@ -47,8 +47,8 @@ export function OrganizerDashboard() {
         <ButtonLink href="/event" variant="secondary" size="lg">
           View event
         </ButtonLink>
-        <ButtonLink href="/organizer/event/new" variant="secondary" size="lg">
-          Create event
+        <ButtonLink href="/organizer/event/edit" variant="secondary" size="lg">
+          Manage event
         </ButtonLink>
       </div>
 

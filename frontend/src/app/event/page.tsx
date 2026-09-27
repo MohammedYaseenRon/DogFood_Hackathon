@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -30,6 +31,11 @@ export default async function EventPage() {
           <Badge tone={closed ? "warning" : "success"}>
             {closed ? "Submissions closed" : "Submissions open"}
           </Badge>
+        }
+        action={
+          <ButtonLink href="/organizer/event/edit" variant="white">
+            Manage event
+          </ButtonLink>
         }
       />
 

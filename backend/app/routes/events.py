@@ -19,14 +19,33 @@ class PrizeInput(BaseModel):
 
 
 class TrackInput(BaseModel):
+    id: str | None = None
     name: str = Field(min_length=1, max_length=200)
 
 
-class CreateEventBody(BaseModel):
+class EventConfigBody(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     submissions_close: str = Field(min_length=1)
     tracks: list[TrackInput] = Field(min_length=1)
     prizes: list[PrizeInput] = Field(default_factory=list)
+
+
+def _parse_close_date(raw: str) -> datetime:
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid submissions_close") from exc
+
+
+def _load_event(db: Session, event_id: str | None = None) -> Event | None:
+    query = db.query(Event).options(
+        joinedload(Event.tracks),
+        joinedload(Event.rubric),
+        joinedload(Event.prizes).joinedload(Prize.track),
+    )
+    if event_id:
+        return query.filter(Event.fixture_id == event_id).first()
+    return query.first()
 
 
 def _serialize_event(event: Event) -> dict:
@@ -55,67 +74,38 @@ def _serialize_event(event: Event) -> dict:
     }
 
 
-@router.get("/api/event")
-def get_event(db: Session = Depends(get_db)):
-    event = (
-        db.query(Event)
-        .options(
-            joinedload(Event.tracks),
-            joinedload(Event.rubric),
-            joinedload(Event.prizes).joinedload(Prize.track),
-        )
-        .first()
-    )
-    if not event:
-        return {"event": None}
+def _sync_tracks(db: Session, event: Event, tracks: list[TrackInput]) -> list[Track]:
+    existing = {track.fixture_id: track for track in event.tracks}
+    ordered: list[Track] = []
 
-    return {"event": _serialize_event(event)}
+    for track_input in tracks:
+        name = track_input.name.strip()
+        if track_input.id and track_input.id in existing:
+            track = existing[track_input.id]
+            track.name = name
+            ordered.append(track)
+        else:
+            track = Track(fixture_id=new_id(), name=name, event_id=event.id)
+            db.add(track)
+            db.flush()
+            ordered.append(track)
+
+    return ordered
 
 
-@router.post("/api/events")
-def create_event(
-    body: CreateEventBody, request: Request, db: Session = Depends(get_db)
-):
-    require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
-
-    if db.query(Event).first():
-        raise HTTPException(
-            status_code=409,
-            detail="An event already exists. Only one event is supported.",
-        )
-
-    try:
-        submissions_close = datetime.fromisoformat(
-            body.submissions_close.replace("Z", "+00:00")
-        ).replace(tzinfo=None)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid submissions_close") from exc
-
-    event = Event(
-        fixture_id=new_id(),
-        name=body.name.strip(),
-        submissions_close=submissions_close,
-    )
-    db.add(event)
+def _sync_prizes(
+    db: Session, event: Event, prizes: list[PrizeInput], tracks: list[Track]
+) -> None:
+    for prize in list(event.prizes):
+        db.delete(prize)
     db.flush()
 
-    created_tracks: list[Track] = []
-    for track_input in body.tracks:
-        track = Track(
-            fixture_id=new_id(),
-            name=track_input.name.strip(),
-            event_id=event.id,
-        )
-        db.add(track)
-        db.flush()
-        created_tracks.append(track)
-
-    for prize_input in body.prizes:
+    for prize_input in prizes:
         track_id = None
         if prize_input.track_index is not None:
-            if prize_input.track_index >= len(created_tracks):
+            if prize_input.track_index >= len(tracks):
                 raise HTTPException(status_code=400, detail="Invalid prize track_index")
-            track_id = created_tracks[prize_input.track_index].id
+            track_id = tracks[prize_input.track_index].id
 
         db.add(
             Prize(
@@ -127,19 +117,64 @@ def create_event(
             )
         )
 
+
+def _ensure_rubric(db: Session, event: Event) -> None:
+    if event.rubric:
+        return
     for name in ("functionality", "quality", "innovation"):
         db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
 
+
+@router.get("/api/event")
+def get_event(db: Session = Depends(get_db)):
+    event = _load_event(db)
+    if not event:
+        return {"event": None}
+    return {"event": _serialize_event(event)}
+
+
+@router.post("/api/events")
+def create_event(body: EventConfigBody, request: Request, db: Session = Depends(get_db)):
+    require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
+
+    if db.query(Event).first():
+        raise HTTPException(
+            status_code=409,
+            detail="An event already exists. Use edit to update it.",
+        )
+
+    event = Event(
+        fixture_id=new_id(),
+        name=body.name.strip(),
+        submissions_close=_parse_close_date(body.submissions_close),
+    )
+    db.add(event)
+    db.flush()
+
+    tracks = _sync_tracks(db, event, body.tracks)
+    _sync_prizes(db, event, body.prizes, tracks)
+    _ensure_rubric(db, event)
     db.commit()
 
-    event = (
-        db.query(Event)
-        .options(
-            joinedload(Event.tracks),
-            joinedload(Event.rubric),
-            joinedload(Event.prizes).joinedload(Prize.track),
-        )
-        .filter(Event.id == event.id)
-        .first()
-    )
+    event = _load_event(db, event.fixture_id)
+    return {"event": _serialize_event(event)}
+
+
+@router.patch("/api/events")
+def update_event(body: EventConfigBody, request: Request, db: Session = Depends(get_db)):
+    require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
+
+    event = db.query(Event).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="No event to update")
+
+    event.name = body.name.strip()
+    event.submissions_close = _parse_close_date(body.submissions_close)
+
+    tracks = _sync_tracks(db, event, body.tracks)
+    _sync_prizes(db, event, body.prizes, tracks)
+    _ensure_rubric(db, event)
+    db.commit()
+
+    event = _load_event(db, event.fixture_id)
     return {"event": _serialize_event(event)}
