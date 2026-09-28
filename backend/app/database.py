@@ -34,3 +34,7 @@ def init_db() -> None:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     Base.metadata.create_all(bind=engine)
+
+    from app.migrate import run_migrations
+
+    run_migrations(engine)

@@ -31,6 +31,26 @@ const nextConfig: NextConfig = {
         destination: `${backendUrl}/api/export.csv`,
       },
       {
+        source: "/api/invites/:token/join",
+        destination: `${backendUrl}/api/invites/:token/join`,
+      },
+      {
+        source: "/api/invites/:token",
+        destination: `${backendUrl}/api/invites/:token`,
+      },
+      {
+        source: "/api/teams/:teamId/invites",
+        destination: `${backendUrl}/api/teams/:teamId/invites`,
+      },
+      {
+        source: "/api/teams/:teamId/members",
+        destination: `${backendUrl}/api/teams/:teamId/members`,
+      },
+      {
+        source: "/api/teams/:teamId",
+        destination: `${backendUrl}/api/teams/:teamId`,
+      },
+      {
         source: "/api/teams/join/:token",
         destination: `${backendUrl}/api/teams/join/:token`,
       },

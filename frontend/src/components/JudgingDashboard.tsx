@@ -92,27 +92,36 @@ export function JudgingDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg shadow-emerald-500/20">
-        <div className="p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-emerald-100">Review progress</p>
-              <p className="font-display mt-1 text-3xl font-bold text-white">
-                {scored} / {total} scored
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-display text-4xl font-bold text-white">{percent}%</p>
-              <p className="text-xs text-emerald-100">complete</p>
-            </div>
-          </div>
-          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/20">
-            <div
-              className="h-full rounded-full bg-white transition-all"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+            Scored
+          </p>
+          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">
+            {scored}
+            <span className="text-lg font-medium text-zinc-400"> / {total}</span>
+          </p>
         </div>
+        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase">
+            Completion
+          </p>
+          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">{percent}%</p>
+        </div>
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+            Remaining
+          </p>
+          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">
+            {total - scored}
+          </p>
+        </div>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-zinc-200">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
+          style={{ width: `${percent}%` }}
+        />
       </div>
 
       {rubric.length > 0 ? (

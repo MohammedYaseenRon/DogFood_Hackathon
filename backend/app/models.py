@@ -33,6 +33,12 @@ class ProjectStatus(str, enum.Enum):
     SUBMITTED = "SUBMITTED"
 
 
+class TeamMemberRole(str, enum.Enum):
+    OWNER = "OWNER"
+    ADMIN = "ADMIN"
+    MEMBER = "MEMBER"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -94,10 +100,19 @@ class Team(Base):
     name: Mapped[str] = mapped_column(String)
     invite_token: Mapped[str] = mapped_column(String, unique=True, default=new_id)
     event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     event: Mapped[Event] = relationship(back_populates="teams")
     members: Mapped[list["TeamMember"]] = relationship(back_populates="team")
     projects: Mapped[list["Project"]] = relationship(back_populates="team")
+    invites: Mapped[list["TeamInvite"]] = relationship(back_populates="team")
+    creator: Mapped["User | None"] = relationship(foreign_keys=[created_by])
 
 
 class TeamMember(Base):
@@ -107,9 +122,30 @@ class TeamMember(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
     team_id: Mapped[str] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    role: Mapped[TeamMemberRole] = mapped_column(
+        Enum(TeamMemberRole), default=TeamMemberRole.MEMBER
+    )
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     team: Mapped[Team] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="team_memberships")
+
+
+class TeamInvite(Base):
+    __tablename__ = "team_invites"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    team_id: Mapped[str] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    token: Mapped[str] = mapped_column(String, unique=True, index=True)
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    max_uses: Mapped[int] = mapped_column(default=10)
+    used_count: Mapped[int] = mapped_column(default=0)
+    revoked: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    team: Mapped[Team] = relationship(back_populates="invites")
+    creator: Mapped[User] = relationship(foreign_keys=[created_by])
 
 
 class Project(Base):

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import {
   createEventClient,
   updateEventClient,
@@ -24,6 +24,19 @@ function toLocalDatetimeValue(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function formatPreviewDate(value: string) {
+  if (!value) return "Not set";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function defaultPrizes(): PrizeRow[] {
   return [
     { name: "Grand prize", amount: "$2,500", rank: 1, trackIndex: "" },
@@ -31,12 +44,17 @@ function defaultPrizes(): PrizeRow[] {
   ];
 }
 
+const inputClass =
+  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10";
+
 export function EventForm({
   mode,
   initialEvent,
+  submissionsOpen = true,
 }: {
   mode: "create" | "edit";
   initialEvent?: EventInfo | null;
+  submissionsOpen?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialEvent?.name ?? "");
@@ -73,6 +91,11 @@ export function EventForm({
     [tracks],
   );
 
+  const filledTracks = tracks.filter((track) => track.name.trim()).length;
+  const filledPrizes = prizes.filter(
+    (prize) => prize.name.trim() && prize.amount.trim(),
+  ).length;
+
   function addTrack() {
     setTracks((prev) => [...prev, { name: "" }]);
   }
@@ -105,10 +128,12 @@ export function EventForm({
     e.preventDefault();
     setError(null);
 
-    const trackList = tracks.map((t) => ({
-      id: t.id,
-      name: t.name.trim(),
-    })).filter((t) => t.name);
+    const trackList = tracks
+      .map((t) => ({
+        id: t.id,
+        name: t.name.trim(),
+      }))
+      .filter((t) => t.name);
 
     if (trackList.length === 0) {
       setError("Add at least one track.");
@@ -121,8 +146,7 @@ export function EventForm({
         name: p.name.trim(),
         amount: p.amount.trim(),
         rank: p.rank,
-        track_index:
-          p.trackIndex === "" ? undefined : (p.trackIndex as number),
+        track_index: p.trackIndex === "" ? undefined : (p.trackIndex as number),
       }));
 
     const payload = {
@@ -150,212 +174,326 @@ export function EventForm({
     }
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-[#3770FF] focus:outline-none focus:ring-2 focus:ring-blue-100";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <section className="space-y-4">
-        <h2 className="font-display text-lg font-bold text-zinc-900">
-          Event details
-        </h2>
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-zinc-700">
-            Event name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className={inputClass}
-            placeholder="Dogfood 2026"
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-zinc-700">
-            Submissions close
-          </label>
-          <input
-            type="datetime-local"
-            value={submissionsClose}
-            onChange={(e) => setSubmissionsClose(e.target.value)}
-            required
-            className={inputClass}
-          />
-          <p className="mt-1.5 text-xs text-zinc-400">
-            Participants cannot submit or edit projects after this date.
-          </p>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-zinc-900">
-            Tracks
-          </h2>
-          <Button type="button" variant="secondary" size="sm" onClick={addTrack}>
-            + Add track
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {tracks.map((track, index) => (
-            <div key={index} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="space-y-6">
+        <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
+          <div className="border-b border-zinc-100 px-6 py-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700">
+                1
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-zinc-950">
+                  Event details
+                </h2>
+                <p className="text-sm text-zinc-500">
+                  Name and submission deadline for your hackathon.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-5 p-6">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-zinc-700">
+                Event name
+              </label>
               <input
-                value={track.name}
-                onChange={(e) =>
-                  setTracks((prev) =>
-                    prev.map((t, i) =>
-                      i === index ? { ...t, name: e.target.value } : t,
-                    ),
-                  )
-                }
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
                 className={inputClass}
-                placeholder={`Track ${index + 1}`}
+                placeholder="Dogfood 2026"
               />
-              {tracks.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => removeTrack(index)}
-                  className="shrink-0 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-500 hover:border-red-200 hover:text-red-600"
-                >
-                  Remove
-                </button>
-              ) : null}
             </div>
-          ))}
-        </div>
-      </section>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-zinc-700">
+                Submissions close
+              </label>
+              <input
+                type="datetime-local"
+                value={submissionsClose}
+                onChange={(e) => setSubmissionsClose(e.target.value)}
+                required
+                className={inputClass}
+              />
+              <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                Participants cannot submit or edit projects after this date.
+              </p>
+            </div>
+          </div>
+        </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-zinc-900">
-            Prizes
-          </h2>
-          <Button type="button" variant="secondary" size="sm" onClick={addPrize}>
-            + Add prize
-          </Button>
-        </div>
-        <div className="space-y-4">
-          {prizes.map((prize, index) => (
-            <div
-              key={index}
-              className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-3"
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-500">
-                    Prize name
-                  </label>
-                  <input
-                    value={prize.name}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((p, i) =>
-                          i === index ? { ...p, name: e.target.value } : p,
-                        ),
-                      )
-                    }
-                    className={inputClass}
-                    placeholder="Grand prize"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-500">
-                    Amount
-                  </label>
-                  <input
-                    value={prize.amount}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((p, i) =>
-                          i === index ? { ...p, amount: e.target.value } : p,
-                        ),
-                      )
-                    }
-                    className={inputClass}
-                    placeholder="$2,500"
-                  />
-                </div>
+        <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100 text-sm font-bold text-cyan-700">
+                2
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-zinc-950">
+                  Tracks
+                </h2>
+                <p className="text-sm text-zinc-500">
+                  Categories participants choose when submitting.
+                </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-500">
-                    Rank
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={prize.rank}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((p, i) =>
-                          i === index
-                            ? { ...p, rank: Number(e.target.value) }
-                            : p,
-                        ),
-                      )
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-500">
-                    Track (optional)
-                  </label>
-                  <select
-                    value={prize.trackIndex === "" ? "" : String(prize.trackIndex)}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((p, i) =>
-                          i === index
-                            ? {
-                                ...p,
-                                trackIndex:
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value),
-                              }
-                            : p,
-                        ),
-                      )
-                    }
-                    className={inputClass}
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={addTrack}>
+              + Add track
+            </Button>
+          </div>
+          <div className="space-y-3 p-6">
+            {tracks.map((track, index) => (
+              <div
+                key={`${track.id ?? "new"}-${index}`}
+                className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/60 p-3"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-zinc-500 shadow-sm">
+                  {index + 1}
+                </span>
+                <input
+                  value={track.name}
+                  onChange={(e) =>
+                    setTracks((prev) =>
+                      prev.map((t, i) =>
+                        i === index ? { ...t, name: e.target.value } : t,
+                      ),
+                    )
+                  }
+                  required
+                  className={inputClass}
+                  placeholder={`Track ${index + 1}`}
+                />
+                {tracks.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => removeTrack(index)}
+                    className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-500 transition hover:bg-red-50 hover:text-red-600"
                   >
-                    <option value="">Overall (all tracks)</option>
-                    {trackOptions.map((t) => (
-                      <option key={t.index} value={t.index}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-sm font-bold text-amber-700">
+                3
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-zinc-950">
+                  Prizes
+                </h2>
+                <p className="text-sm text-zinc-500">
+                  Optional awards shown on the public event page.
+                </p>
+              </div>
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={addPrize}>
+              + Add prize
+            </Button>
+          </div>
+          <div className="space-y-4 p-6">
+            {prizes.map((prize, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-5"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">
+                    Prize {index + 1}
+                  </p>
+                  {prizes.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removePrize(index)}
+                      className="text-xs font-semibold text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-zinc-500">
+                      Prize name
+                    </label>
+                    <input
+                      value={prize.name}
+                      onChange={(e) =>
+                        setPrizes((prev) =>
+                          prev.map((p, i) =>
+                            i === index ? { ...p, name: e.target.value } : p,
+                          ),
+                        )
+                      }
+                      className={inputClass}
+                      placeholder="Grand prize"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-zinc-500">
+                      Amount
+                    </label>
+                    <input
+                      value={prize.amount}
+                      onChange={(e) =>
+                        setPrizes((prev) =>
+                          prev.map((p, i) =>
+                            i === index ? { ...p, amount: e.target.value } : p,
+                          ),
+                        )
+                      }
+                      className={inputClass}
+                      placeholder="$2,500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-zinc-500">
+                      Rank
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={prize.rank}
+                      onChange={(e) =>
+                        setPrizes((prev) =>
+                          prev.map((p, i) =>
+                            i === index
+                              ? { ...p, rank: Number(e.target.value) }
+                              : p,
+                          ),
+                        )
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-zinc-500">
+                      Track (optional)
+                    </label>
+                    <select
+                      value={
+                        prize.trackIndex === "" ? "" : String(prize.trackIndex)
+                      }
+                      onChange={(e) =>
+                        setPrizes((prev) =>
+                          prev.map((p, i) =>
+                            i === index
+                              ? {
+                                  ...p,
+                                  trackIndex:
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
+                                }
+                              : p,
+                          ),
+                        )
+                      }
+                      className={inputClass}
+                    >
+                      <option value="">Overall (all tracks)</option>
+                      {trackOptions.map((t) => (
+                        <option key={t.index} value={t.index}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              {prizes.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => removePrize(index)}
-                  className="text-xs font-medium text-red-600 hover:text-red-700"
-                >
-                  Remove prize
-                </button>
-              ) : null}
-            </div>
-          ))}
+            ))}
+          </div>
+        </section>
+
+        {error ? <Alert tone="error">{error}</Alert> : null}
+
+        <div className="flex flex-wrap items-center gap-3 lg:hidden">
+          <Button type="submit" disabled={loading} size="lg">
+            {loading
+              ? mode === "edit"
+                ? "Saving..."
+                : "Creating..."
+              : mode === "edit"
+                ? "Save event"
+                : "Create event"}
+          </Button>
+          <ButtonLink href="/organizer/dashboard" variant="secondary" size="lg">
+            Cancel
+          </ButtonLink>
         </div>
-      </section>
+      </div>
 
-      <Button type="submit" disabled={loading} size="lg">
-        {loading
-          ? mode === "edit"
-            ? "Saving..."
-            : "Creating..."
-          : mode === "edit"
-            ? "Save event"
-            : "Create event"}
-      </Button>
+      <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">
+            Preview
+          </p>
+          <h3 className="font-display mt-2 text-xl font-bold text-zinc-950">
+            {name.trim() || "Untitled event"}
+          </h3>
+          <dl className="mt-5 space-y-3 text-sm">
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-zinc-500">Deadline</dt>
+              <dd className="text-right font-semibold text-zinc-900">
+                {formatPreviewDate(submissionsClose)}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-zinc-500">Submissions</dt>
+              <dd className="font-semibold">
+                <span
+                  className={
+                    submissionsOpen
+                      ? "text-emerald-600"
+                      : "text-amber-600"
+                  }
+                >
+                  {submissionsOpen ? "Open" : "Closed"}
+                </span>
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-zinc-500">Tracks</dt>
+              <dd className="font-semibold text-zinc-900">{filledTracks}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-zinc-500">Prizes</dt>
+              <dd className="font-semibold text-zinc-900">{filledPrizes}</dd>
+            </div>
+          </dl>
+        </div>
 
-      {error ? <Alert tone="error">{error}</Alert> : null}
+        <div className="hidden rounded-[24px] border border-zinc-200 bg-zinc-950 p-5 text-white shadow-sm lg:block">
+          <p className="text-sm text-zinc-400">
+            {mode === "edit"
+              ? "Save changes to update the live event configuration."
+              : "Create the event to open submissions and gallery setup."}
+          </p>
+          <Button type="submit" disabled={loading} className="mt-5 w-full">
+            {loading
+              ? mode === "edit"
+                ? "Saving..."
+                : "Creating..."
+              : mode === "edit"
+                ? "Save event"
+                : "Create event"}
+          </Button>
+          <ButtonLink
+            href="/organizer/dashboard"
+            variant="ghost"
+            className="mt-2 w-full text-zinc-300 hover:bg-white/10 hover:text-white"
+          >
+            Cancel
+          </ButtonLink>
+        </div>
+      </aside>
     </form>
   );
 }

@@ -86,19 +86,32 @@ export type ScoreSubmitPayload = {
   comment?: string;
 };
 
+export type OrganizerJudgeProgress = {
+  id: string;
+  name: string;
+  email?: string;
+  assigned: number;
+  completed: number;
+  remaining?: number;
+  percent: number;
+};
+
 export type OrganizerStats = {
   totalProjects: number;
   totalJudges: number;
   totalAssignments: number;
   totalScores: number;
+  remainingAssignments?: number;
   completionPercent: number;
-  judgeProgress: Array<{
-    id: string;
+  judgesComplete?: number;
+  judgesBehind?: number;
+  averageJudgePercent?: number;
+  event?: {
     name: string;
-    assigned: number;
-    completed: number;
-    percent: number;
-  }>;
+    submissionsClose: string;
+    submissionsOpen: boolean;
+  } | null;
+  judgeProgress: OrganizerJudgeProgress[];
 };
 
 async function serverFetch(path: string) {
@@ -200,10 +213,150 @@ export async function fetchOrganizerStatsClient(): Promise<OrganizerStats | null
   return clientFetch("/api/organizer/stats");
 }
 
-export async function fetchMyTeamClient(): Promise<{
-  team: { name: string; inviteToken: string; inviteUrl: string } | null;
-} | null> {
+export type TeamSummary = {
+  id: string;
+  fixtureId?: string;
+  name: string;
+  eventId?: string;
+  createdBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  memberCount?: number;
+  myRole?: string | null;
+  teamUrl?: string;
+  inviteUrl?: string;
+};
+
+export type TeamMemberInfo = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "ADMIN" | "MEMBER";
+  joinedAt: string;
+};
+
+export type TeamInviteInfo = {
+  id: string;
+  token: string;
+  teamId: string;
+  expiresAt: string;
+  maxUses: number;
+  usedCount: number;
+  revoked: boolean;
+  createdAt: string;
+  inviteUrl: string;
+  remainingUses: number;
+  expired: boolean;
+};
+
+export type InvitePreview = {
+  token: string;
+  type: "invite" | "legacy";
+  team: {
+    id: string;
+    name: string;
+    memberCount: number;
+  };
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number | null;
+  remainingUses: number | null;
+  members: TeamMemberInfo[];
+};
+
+export async function fetchMyTeamClient(): Promise<{ team: TeamSummary | null } | null> {
   return clientFetch("/api/teams/mine");
+}
+
+export async function fetchTeamClient(teamId: string): Promise<{ team: TeamSummary } | null> {
+  return clientFetch(`/api/teams/${teamId}`);
+}
+
+export async function fetchTeamMembersClient(
+  teamId: string,
+): Promise<{ members: TeamMemberInfo[] } | null> {
+  return clientFetch(`/api/teams/${teamId}/members`);
+}
+
+export async function fetchInvitePreview(token: string): Promise<InvitePreview | null> {
+  const res = await fetch(`${backendUrl}/api/invites/${token}`, { next: { revalidate: 0 } });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function fetchInvitePreviewClient(
+  token: string,
+): Promise<{ data: InvitePreview | null; error: string | null; status: number }> {
+  const res = await fetch(`/api/invites/${token}`, { credentials: "include" });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = typeof data?.detail === "string" ? data.detail : "Invitation unavailable";
+    return { data: null, error: detail, status: res.status };
+  }
+  return { data, error: null, status: res.status };
+}
+
+export async function createTeamInviteClient(
+  teamId: string,
+  payload?: { expires_in_hours?: number; max_uses?: number },
+): Promise<{ invite: TeamInviteInfo | null; error: string | null }> {
+  const result = await clientPost<{ invite: TeamInviteInfo }>(
+    `/api/teams/${teamId}/invites`,
+    payload ?? {},
+  );
+  return { invite: result.data?.invite ?? null, error: result.error };
+}
+
+export async function joinTeamInviteClient(
+  token: string,
+): Promise<{
+  teamId: string | null;
+  teamName: string | null;
+  alreadyMember: boolean;
+  message: string | null;
+  error: string | null;
+}> {
+  const result = await clientPost<{
+    ok: boolean;
+    teamId: string;
+    teamName: string;
+    alreadyMember: boolean;
+    message: string;
+  }>(`/api/invites/${token}/join`, {});
+  if (result.error) {
+    return {
+      teamId: null,
+      teamName: null,
+      alreadyMember: false,
+      message: null,
+      error: result.error,
+    };
+  }
+  return {
+    teamId: result.data?.teamId ?? null,
+    teamName: result.data?.teamName ?? null,
+    alreadyMember: result.data?.alreadyMember ?? false,
+    message: result.data?.message ?? null,
+    error: null,
+  };
+}
+
+export async function revokeTeamInviteClient(
+  token: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  const res = await fetch(`/api/invites/${token}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: typeof data?.detail === "string" ? data.detail : "Could not revoke invite",
+    };
+  }
+  return { ok: true, error: null };
 }
 
 export async function fetchMyProjectClient(): Promise<{ project: MyProject | null } | null> {
@@ -212,11 +365,8 @@ export async function fetchMyProjectClient(): Promise<{ project: MyProject | nul
 
 export async function createTeamClient(
   name: string,
-): Promise<{ team: { name: string; inviteToken: string; inviteUrl: string } | null; error: string | null }> {
-  const result = await clientPost<{ team: { name: string; inviteToken: string; inviteUrl: string } }>(
-    "/api/teams",
-    { name },
-  );
+): Promise<{ team: TeamSummary | null; error: string | null }> {
+  const result = await clientPost<{ team: TeamSummary }>("/api/teams", { name });
   return { team: result.data?.team ?? null, error: result.error };
 }
 

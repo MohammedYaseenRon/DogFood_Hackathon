@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -46,22 +48,55 @@ def organizer_stats(request: Request, db: Session = Depends(get_db)):
             .filter(Score.judge_id == judge.id)
             .count()
         )
+        remaining = max(assigned - completed, 0)
+        percent = round((completed / assigned) * 100, 1) if assigned else 0
         judge_progress.append(
             {
                 "id": judge.fixture_id or judge.id,
                 "name": judge.name or judge.email,
+                "email": judge.email,
                 "assigned": assigned,
                 "completed": completed,
-                "percent": round((completed / assigned) * 100, 1) if assigned else 0,
+                "remaining": remaining,
+                "percent": percent,
             }
         )
+
+    judges_complete = sum(
+        1 for item in judge_progress if item["assigned"] and item["completed"] >= item["assigned"]
+    )
+    judges_behind = sum(
+        1 for item in judge_progress if item["assigned"] and item["percent"] < 50
+    )
+    average_percent = (
+        round(
+            sum(item["percent"] for item in judge_progress) / len(judge_progress),
+            1,
+        )
+        if judge_progress
+        else 0
+    )
+
+    event = db.query(Event).first()
+    event_payload = None
+    if event:
+        event_payload = {
+            "name": event.name,
+            "submissionsClose": event.submissions_close.isoformat() + "Z",
+            "submissionsOpen": event.submissions_close > datetime.utcnow(),
+        }
 
     return {
         "totalProjects": total_projects,
         "totalJudges": total_judges,
         "totalAssignments": total_assignments,
         "totalScores": total_scores,
+        "remainingAssignments": max(total_assignments - total_scores, 0),
         "completionPercent": completion,
+        "judgesComplete": judges_complete,
+        "judgesBehind": judges_behind,
+        "averageJudgePercent": average_percent,
+        "event": event_payload,
         "judgeProgress": judge_progress,
     }
 

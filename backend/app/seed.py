@@ -18,6 +18,7 @@ from app.models import (
     Session as DbSession,
     Team,
     TeamMember,
+    TeamMemberRole,
     Track,
     User,
 )
@@ -198,11 +199,14 @@ def seed() -> None:
                 db.flush()
             team_map[team["id"]] = row.id
 
-            for member_email in team["members"]:
+            owner_id: str | None = None
+            for index, member_email in enumerate(team["members"]):
                 participant = get_or_create_user(db, member_email, role=Role.PARTICIPANT)
                 user_map[member_email] = participant.id
                 if first_participant_id is None:
                     first_participant_id = participant.id
+                if index == 0:
+                    owner_id = participant.id
 
                 membership = (
                     db.query(TeamMember)
@@ -210,7 +214,20 @@ def seed() -> None:
                     .first()
                 )
                 if not membership:
-                    db.add(TeamMember(team_id=row.id, user_id=participant.id))
+                    db.add(
+                        TeamMember(
+                            team_id=row.id,
+                            user_id=participant.id,
+                            role=TeamMemberRole.OWNER
+                            if index == 0
+                            else TeamMemberRole.MEMBER,
+                        )
+                    )
+                elif index == 0:
+                    membership.role = TeamMemberRole.OWNER
+
+            if owner_id and not row.created_by:
+                row.created_by = owner_id
 
         project_map: dict[str, str] = {}
         for project in fixtures["projects"]:

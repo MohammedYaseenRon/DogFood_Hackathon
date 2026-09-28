@@ -72,7 +72,7 @@ const ALL_SESSIONS = [
   ...JUDGE_OPTIONS.map((j) => ({ label: j.label, key: j.sessionKey })),
 ];
 
-export function LoginPanel() {
+export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function LoginPanel() {
       return;
     }
     setMessage(`Signed in as ${label}`);
-    router.push(href);
+    router.push(redirectTo || href);
     router.refresh();
   }
 

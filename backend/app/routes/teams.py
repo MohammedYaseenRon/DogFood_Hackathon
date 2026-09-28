@@ -3,14 +3,34 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_session_user
+from app.config import app_base_url
 from app.database import get_db
-from app.models import Event, Role, Team, TeamMember, User, new_id
+from app.models import Event, Role, Team, TeamMember, TeamMemberRole, User, new_id
+from app.services.team_invites import (
+    create_team_invite,
+    get_membership,
+    get_team_or_404,
+    invite_preview,
+    invite_url,
+    join_team_with_token,
+    require_invite_manager,
+    require_membership,
+    serialize_invite,
+    serialize_member,
+    serialize_team,
+    user_team_for_event,
+)
 
 router = APIRouter(tags=["teams"])
 
 
 class CreateTeamBody(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+
+
+class CreateInviteBody(BaseModel):
+    expires_in_hours: int = Field(default=168, ge=1, le=8760)
+    max_uses: int = Field(default=10, ge=1, le=1000)
 
 
 def _active_event(db: Session) -> Event:
@@ -20,35 +40,9 @@ def _active_event(db: Session) -> Event:
     return event
 
 
-def _user_team_for_event(db: Session, user_id: str, event_id: str) -> TeamMember | None:
-    return (
-        db.query(TeamMember)
-        .join(Team)
-        .filter(TeamMember.user_id == user_id, Team.event_id == event_id)
-        .first()
-    )
-
-
-@router.get("/api/teams/invite/{token}")
-def team_by_invite(token: str, db: Session = Depends(get_db)):
-    team = (
-        db.query(Team)
-        .options(joinedload(Team.members).joinedload(TeamMember.user))
-        .filter(Team.invite_token == token)
-        .first()
-    )
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    return {
-        "id": team.fixture_id,
-        "name": team.name,
-        "inviteToken": team.invite_token,
-        "members": [
-            {"email": member.user.email, "role": member.user.role.value}
-            for member in team.members
-        ],
-    }
+def _require_participant(user: User) -> None:
+    if user.role not in {Role.PARTICIPANT, Role.VISITOR}:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @router.post("/api/teams")
@@ -58,11 +52,10 @@ def create_team(
     user = get_session_user(db, request)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    if user.role not in {Role.PARTICIPANT, Role.VISITOR}:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    _require_participant(user)
 
     event = _active_event(db)
-    if _user_team_for_event(db, user.id, event.id):
+    if user_team_for_event(db, user.id, event.id):
         raise HTTPException(status_code=409, detail="Already on a team for this event")
 
     if user.role == Role.VISITOR:
@@ -72,55 +65,28 @@ def create_team(
         fixture_id=new_id(),
         name=body.name.strip(),
         event_id=event.id,
+        created_by=user.id,
     )
     db.add(team)
     db.flush()
-    db.add(TeamMember(team_id=team.id, user_id=user.id))
+    db.add(
+        TeamMember(
+            team_id=team.id,
+            user_id=user.id,
+            role=TeamMemberRole.OWNER,
+        )
+    )
     db.commit()
     db.refresh(team)
 
+    membership = get_membership(db, team.id, user.id)
     return {
         "ok": True,
         "team": {
-            "name": team.name,
-            "inviteToken": team.invite_token,
-            "inviteUrl": f"/teams/join/{team.invite_token}",
+            **serialize_team(team, membership),
+            "inviteUrl": f"{app_base_url()}/teams/{team.id}",
         },
     }
-
-
-@router.post("/api/teams/join/{token}")
-def join_team(token: str, request: Request, db: Session = Depends(get_db)):
-    user = get_session_user(db, request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    team = db.query(Team).filter(Team.invite_token == token).first()
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    existing = (
-        db.query(TeamMember)
-        .filter(TeamMember.team_id == team.id, TeamMember.user_id == user.id)
-        .first()
-    )
-    if existing:
-        return {"ok": True, "team": team.name, "message": "Already a member"}
-
-    other = _user_team_for_event(db, user.id, team.event_id)
-    if other and other.team_id != team.id:
-        raise HTTPException(
-            status_code=409,
-            detail="You are already on another team for this event",
-        )
-
-    if user.role == Role.VISITOR:
-        user.role = Role.PARTICIPANT
-
-    db.add(TeamMember(team_id=team.id, user_id=user.id))
-    db.commit()
-
-    return {"ok": True, "team": team.name, "message": "Joined team"}
 
 
 @router.get("/api/teams/mine")
@@ -133,18 +99,101 @@ def my_team(request: Request, db: Session = Depends(get_db)):
     if not event:
         return {"team": None}
 
-    membership = _user_team_for_event(db, user.id, event.id)
+    membership = user_team_for_event(db, user.id, event.id)
     if not membership:
         return {"team": None}
 
-    team = db.get(Team, membership.team_id)
+    team = (
+        db.query(Team)
+        .options(joinedload(Team.members))
+        .filter(Team.id == membership.team_id)
+        .first()
+    )
     if not team:
         return {"team": None}
 
     return {
         "team": {
-            "name": team.name,
-            "inviteToken": team.invite_token,
-            "inviteUrl": f"/teams/join/{team.invite_token}",
+            **serialize_team(team, membership),
+            "teamUrl": f"{app_base_url()}/teams/{team.id}",
         }
     }
+
+
+@router.get("/api/teams/{team_id}")
+def get_team(team_id: str, request: Request, db: Session = Depends(get_db)):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    team = (
+        db.query(Team)
+        .options(joinedload(Team.members).joinedload(TeamMember.user))
+        .filter(Team.id == team_id)
+        .first()
+    )
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    membership = require_membership(db, team.id, user)
+    return {"team": serialize_team(team, membership)}
+
+
+@router.get("/api/teams/{team_id}/members")
+def get_team_members(
+    team_id: str, request: Request, db: Session = Depends(get_db)
+):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    team = get_team_or_404(db, team_id)
+    require_membership(db, team.id, user)
+
+    members = (
+        db.query(TeamMember)
+        .options(joinedload(TeamMember.user))
+        .filter(TeamMember.team_id == team.id)
+        .order_by(TeamMember.joined_at.asc())
+        .all()
+    )
+    return {"members": [serialize_member(member) for member in members]}
+
+
+@router.post("/api/teams/{team_id}/invites")
+def create_invite(
+    team_id: str,
+    body: CreateInviteBody,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    team = get_team_or_404(db, team_id)
+    require_invite_manager(db, team.id, user)
+
+    invite = create_team_invite(
+        db,
+        team,
+        user,
+        expires_in_hours=body.expires_in_hours,
+        max_uses=body.max_uses,
+    )
+    return {"invite": serialize_invite(invite)}
+
+
+@router.get("/api/teams/invite/{token}")
+def legacy_team_preview(token: str, db: Session = Depends(get_db)):
+    return invite_preview(db, token)
+
+
+@router.post("/api/teams/join/{token}")
+def legacy_join_team(
+    token: str, request: Request, db: Session = Depends(get_db)
+):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return join_team_with_token(db, user, token)

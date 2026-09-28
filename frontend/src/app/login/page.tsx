@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { LoginPanel } from "@/components/LoginPanel";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ redirect?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { redirect } = await searchParams;
   return (
     <main className="min-h-[calc(100vh-140px)] bg-[#fafafa]">
       <div className="mx-auto grid max-w-5xl gap-8 px-6 py-10 lg:grid-cols-5 lg:py-16">
@@ -40,7 +45,7 @@ export default function LoginPage() {
             <p className="mb-6 text-sm text-zinc-500">
               Demo mode — pick a role to continue
             </p>
-            <LoginPanel />
+            <LoginPanel redirectTo={redirect} />
           </div>
 
           <p className="mt-6 text-center text-sm text-zinc-400 lg:hidden">

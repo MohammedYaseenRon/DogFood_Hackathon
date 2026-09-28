@@ -6,20 +6,14 @@ import {
   fetchMyProjectClient,
   fetchMyTeamClient,
   type MyProject,
+  type TeamSummary,
   type UserInfo,
 } from "@/lib/api";
-import { CreateTeamForm } from "@/components/CreateTeamForm";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-
-type TeamInfo = {
-  name: string;
-  inviteToken: string;
-  inviteUrl: string;
-} | null;
 
 export function ParticipantDashboard({
   submissionsOpen,
@@ -27,7 +21,7 @@ export function ParticipantDashboard({
   submissionsOpen: boolean;
 }) {
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [team, setTeam] = useState<TeamInfo | undefined>(undefined);
+  const [team, setTeam] = useState<TeamSummary | null | undefined>(undefined);
   const [project, setProject] = useState<MyProject | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
@@ -95,23 +89,57 @@ export function ParticipantDashboard({
 
   return (
     <div className="space-y-8">
-      <Card variant="elevated" className="overflow-hidden p-0">
-        <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-6 text-white">
-          <p className="text-sm font-medium text-amber-100">Welcome back</p>
-          <h2 className="font-display mt-1 text-2xl font-bold">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+            Signed in as
+          </p>
+          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
             {user.name ?? user.email}
-          </h2>
-          <span className="mt-3 inline-block">
+          </p>
+          <span className="mt-2 inline-block">
             <Badge tone="warning">PARTICIPANT</Badge>
           </span>
         </div>
-        <div className="flex flex-wrap gap-3 p-6">
-          <ButtonLink href="/projects/new">Submit project</ButtonLink>
-          <ButtonLink href="/projects" variant="secondary">
-            View gallery
-          </ButtonLink>
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+            Team status
+          </p>
+          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
+            {hasTeam ? team?.name : "No team yet"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            {hasTeam ? "Ready to collaborate" : "Create or join a team"}
+          </p>
         </div>
-      </Card>
+        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-1">
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+            Project
+          </p>
+          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
+            {hasProject ? project?.title : "Not submitted"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            {hasProject ? project?.status : "Start your submission"}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <ButtonLink href="/projects/new">Submit project</ButtonLink>
+        <ButtonLink href="/projects" variant="secondary">
+          View gallery
+        </ButtonLink>
+        {hasTeam && team ? (
+          <ButtonLink href={`/teams/${team.id}`} variant="secondary">
+            Open team
+          </ButtonLink>
+        ) : (
+          <ButtonLink href="/teams/new" variant="secondary">
+            Create team
+          </ButtonLink>
+        )}
+      </div>
 
       <Alert tone={submissionsOpen ? "success" : "warning"}>
         {submissionsOpen
@@ -155,21 +183,26 @@ export function ParticipantDashboard({
               <div>
                 <p className="font-semibold text-zinc-900">{team.name}</p>
                 <p className="mt-0.5 text-xs text-zinc-400">
-                  Invite: /teams/join/{team.inviteToken}
+                  Role: {team.myRole ?? "MEMBER"}
                 </p>
               </div>
               <Badge tone="success">Joined</Badge>
             </div>
-            <p className="text-sm text-zinc-500">
-              Share the invite link with teammates so they can join your team.
-            </p>
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink href={`/teams/${team.id}`}>Open team page</ButtonLink>
+              {(team.myRole === "OWNER" || team.myRole === "ADMIN") && (
+                <ButtonLink href={`/teams/${team.id}`} variant="secondary">
+                  Invite members
+                </ButtonLink>
+              )}
+            </div>
           </div>
         ) : (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-zinc-500">
               Create a new team or join an existing one with an invite link.
             </p>
-            <CreateTeamForm onCreated={() => reload()} />
+            <ButtonLink href="/teams/new">Create team</ButtonLink>
           </div>
         )}
       </Card>

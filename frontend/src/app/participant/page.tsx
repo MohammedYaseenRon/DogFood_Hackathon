@@ -10,9 +10,10 @@ export default async function ParticipantPage() {
     : false;
 
   return (
-    <main>
+    <main className="min-h-screen bg-zinc-50/80 pb-16">
       <PageHeader
-        variant="hero"
+        variant="compact"
+        eyebrow="Participant"
         title="Participant hub"
         description="Join your team, submit your project, and track your hackathon journey."
         badge={
@@ -21,8 +22,7 @@ export default async function ParticipantPage() {
           </Badge>
         }
       />
-
-      <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-6 py-8">
         <ParticipantDashboard submissionsOpen={submissionsOpen} />
       </div>
     </main>

@@ -10,7 +10,7 @@ export default async function EventPage() {
 
   if (!event) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">
+      <main className="mx-auto max-w-3xl px-6 py-16">
         <EmptyState
           title="No event loaded"
           description="Start the backend and seed fixtures to view event details."
@@ -22,24 +22,25 @@ export default async function EventPage() {
   const closed = new Date() > new Date(event.submissionsClose);
 
   return (
-    <main>
+    <main className="min-h-screen bg-zinc-50/80 pb-16">
       <PageHeader
-        variant="hero"
+        variant="compact"
+        eyebrow="Event"
         title={event.name}
-        description="Event configuration, tracks, and judging rubric."
+        description="Event configuration, tracks, prizes, and judging rubric."
         badge={
           <Badge tone={closed ? "warning" : "success"}>
             {closed ? "Submissions closed" : "Submissions open"}
           </Badge>
         }
         action={
-          <ButtonLink href="/organizer/event/edit" variant="white">
+          <ButtonLink href="/organizer/event/edit" variant="secondary" size="sm">
             Manage event
           </ButtonLink>
         }
       />
 
-      <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         <Card variant="elevated">
           <dl className="grid gap-6 sm:grid-cols-2">
             <div>
@@ -61,9 +62,7 @@ export default async function EventPage() {
 
         {(event.prizes ?? []).length > 0 ? (
           <section>
-            <h2 className="font-display text-xl font-bold text-zinc-900">
-              Prizes
-            </h2>
+            <h2 className="font-display text-xl font-bold text-zinc-900">Prizes</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(event.prizes ?? []).map((prize) => (
                 <Card key={prize.id} className="transition hover:border-violet-200">
@@ -81,9 +80,7 @@ export default async function EventPage() {
         ) : null}
 
         <section>
-          <h2 className="font-display text-xl font-bold text-zinc-900">
-            Tracks
-          </h2>
+          <h2 className="font-display text-xl font-bold text-zinc-900">Tracks</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {event.tracks.map((track) => (
               <Card
@@ -91,9 +88,7 @@ export default async function EventPage() {
                 className="transition hover:border-violet-200 hover:shadow-md"
               >
                 <p className="font-semibold text-zinc-900">{track.name}</p>
-                <p className="mt-1 font-mono text-xs text-zinc-400">
-                  {track.id}
-                </p>
+                <p className="mt-1 font-mono text-xs text-zinc-400">{track.id}</p>
               </Card>
             ))}
           </div>
@@ -113,11 +108,8 @@ export default async function EventPage() {
               </thead>
               <tbody>
                 {event.rubric.map((criterion) => (
-                  <tr
-                    key={criterion.name}
-                    className="border-t border-zinc-100"
-                  >
-                    <td className="px-6 py-4 capitalize font-medium text-zinc-900">
+                  <tr key={criterion.name} className="border-t border-zinc-100">
+                    <td className="px-6 py-4 font-medium capitalize text-zinc-900">
                       {criterion.name}
                     </td>
                     <td className="px-6 py-4">

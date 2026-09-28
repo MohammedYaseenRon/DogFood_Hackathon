@@ -5,7 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import SessionLocal, init_db
 from app.models import Event
-from app.routes import auth_routes, events, export, judge, organizer, projects, teams
+from app.routes import (
+    auth_routes,
+    events,
+    export,
+    invites,
+    judge,
+    organizer,
+    projects,
+    teams,
+)
 from app.seed import seed
 
 
@@ -41,6 +50,7 @@ app.include_router(export.router)
 app.include_router(auth_routes.router)
 app.include_router(events.router)
 app.include_router(teams.router)
+app.include_router(invites.router)
 app.include_router(organizer.router)
 
 
