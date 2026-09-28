@@ -176,22 +176,24 @@ export function OrganizerDashboard() {
   ];
 
   return (
-    <main className="min-h-screen bg-zinc-50/80 pb-16">
-      <div className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-6 py-8 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen pb-20">
+      <div className="relative overflow-hidden border-b border-white/60 bg-gradient-to-br from-violet-50 via-white to-indigo-50/80">
+        <div className="page-dot-grid absolute inset-0 opacity-50" />
+        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-violet-300/25 blur-3xl" />
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-5 px-6 py-10 lg:flex-row lg:items-end lg:justify-between lg:py-12">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-semibold tracking-[0.18em] text-violet-600 uppercase">
+              <p className="text-xs font-bold tracking-[0.2em] text-violet-600 uppercase">
                 Organizer
               </p>
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                 {refreshing ? "Refreshing…" : "Auto-refresh 20s"}
               </span>
             </div>
-            <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-zinc-950">
+            <h1 className="font-display mt-3 text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl">
               {eventName}
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-500">
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-zinc-600">
               Track scoring in real time, spot judges who are falling behind, and
               export results when the room is ready.
             </p>
@@ -213,7 +215,7 @@ export function OrganizerDashboard() {
         </div>
       </div>
 
-      <section className="mx-auto max-w-7xl px-6 py-8">
+      <section className="page-surface relative mx-auto max-w-7xl px-6 py-8">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Scoring complete"

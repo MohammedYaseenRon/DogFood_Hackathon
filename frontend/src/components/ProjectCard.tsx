@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ProjectSummary } from "@/lib/api";
 import {
   projectStats,
@@ -17,10 +18,8 @@ export function ProjectCard({
   const avatars = teamAvatars(project.teamName);
 
   return (
-    <a
-      href={project.repoUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/projects/${project.id}`}
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-zinc-200/90 bg-white shadow-sm transition hover:border-zinc-300 hover:shadow-md"
     >
       {/* Thumbnail */}
@@ -50,7 +49,7 @@ export function ProjectCard({
           {project.title}
         </h2>
         <p className="mt-1.5 line-clamp-2 flex-1 text-[13px] italic leading-relaxed text-zinc-500">
-          {project.summary}
+          {project.tagline || project.summary}
         </p>
 
         {/* Footer */}
@@ -86,7 +85,7 @@ export function ProjectCard({
         </div>
       </div>
 
-    </a>
+    </Link>
   );
 }
 

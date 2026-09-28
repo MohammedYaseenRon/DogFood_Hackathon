@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timedelta
+import re
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -82,15 +83,41 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
         event_data["submissions_close"].replace("Z", "+00:00")
     ).replace(tzinfo=None)
 
+    slug = re.sub(r"[^a-z0-9]+", "-", event_data["name"].lower()).strip("-")
+    reg_opens = submissions_close - timedelta(days=60)
+    reg_closes = submissions_close + timedelta(days=30)
+
     if event:
         event.name = event_data["name"]
         event.submissions_close = submissions_close
+        event.slug = slug
+        event.description = "A sample hackathon loaded from fixture data for development and acceptance testing."
+        event.short_description = "Build, submit, and get judged."
+        event.registration_opens = reg_opens
+        event.registration_closes = reg_closes
+        event.event_starts = reg_opens
+        event.judging_starts = submissions_close
+        event.judging_ends = submissions_close + timedelta(days=14)
+        event.results_at = submissions_close + timedelta(days=21)
+        event.max_team_size = 4
+        event.published = True
         return event
 
     event = Event(
         fixture_id=event_data["id"],
+        slug=slug,
         name=event_data["name"],
+        description="A sample hackathon loaded from fixture data for development and acceptance testing.",
+        short_description="Build, submit, and get judged.",
         submissions_close=submissions_close,
+        registration_opens=reg_opens,
+        registration_closes=reg_closes,
+        event_starts=reg_opens,
+        judging_starts=submissions_close,
+        judging_ends=submissions_close + timedelta(days=14),
+        results_at=submissions_close + timedelta(days=21),
+        max_team_size=4,
+        published=True,
     )
     db.add(event)
     db.flush()

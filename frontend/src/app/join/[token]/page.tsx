@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageSection, PageShell } from "@/components/ui/PageShell";
 import { fetchInvitePreview } from "@/lib/api";
 
 type JoinPageProps = {
@@ -15,61 +16,59 @@ export default async function JoinTeamPage({ params }: JoinPageProps) {
 
   if (!preview) {
     return (
-      <main className="min-h-screen bg-zinc-50/80">
-        <div className="mx-auto max-w-xl px-6 py-16">
-          <EmptyState
-            title="Invitation unavailable"
-            description="This invite link is invalid, expired, revoked, or has reached its usage limit."
-            action={
-              <ButtonLink href="/participant" variant="primary">
-                Go to dashboard
-              </ButtonLink>
-            }
-          />
-        </div>
-      </main>
+      <PageShell
+        tone="amber"
+        title="Invitation unavailable"
+        description="This invite link is invalid, expired, revoked, or has reached its usage limit."
+        maxWidth="max-w-xl"
+      >
+        <EmptyState
+          title="Link not valid"
+          description="Ask your team owner to generate a new invite link."
+          action={
+            <ButtonLink href="/participant" variant="primary">
+              Go to dashboard
+            </ButtonLink>
+          }
+        />
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50/80 pb-16">
-      <div className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-xl px-6 py-10">
-          <p className="text-xs font-semibold tracking-[0.18em] text-violet-600 uppercase">
-            Team invitation
-          </p>
-          <h1 className="font-display mt-2 text-3xl font-bold text-zinc-950">
-            Join {preview.team.name}
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            You&apos;ve been invited to collaborate on this hackathon team.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Badge tone="brand">{preview.team.memberCount} members</Badge>
-            {preview.remainingUses != null ? (
-              <Badge tone="default">{preview.remainingUses} spots left</Badge>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-xl space-y-6 px-6 py-8">
-        <Card variant="elevated">
-          <h2 className="text-sm font-semibold text-zinc-400">Current members</h2>
-          <ul className="mt-4 space-y-2">
-            {preview.members.map((member) => (
-              <li
-                key={member.id}
-                className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-sm"
-              >
-                <span className="font-medium text-zinc-700">{member.name}</span>
-                <Badge tone={member.role === "OWNER" ? "brand" : "default"}>
-                  {member.role}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </Card>
+    <PageShell
+      tone="amber"
+      eyebrow="Team invitation"
+      title={`Join ${preview.team.name}`}
+      description="You've been invited to collaborate on this hackathon team."
+      maxWidth="max-w-xl"
+      badge={
+        <>
+          <Badge tone="brand">{preview.team.memberCount} members</Badge>
+          {preview.remainingUses != null ? (
+            <Badge tone="default">{preview.remainingUses} spots left</Badge>
+          ) : null}
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <PageSection title="Current members">
+          <Card variant="elevated">
+            <ul className="space-y-2">
+              {preview.members.map((member) => (
+                <li
+                  key={member.id}
+                  className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-sm"
+                >
+                  <span className="font-medium text-zinc-700">{member.name}</span>
+                  <Badge tone={member.role === "OWNER" ? "brand" : "default"}>
+                    {member.role}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </PageSection>
 
         <Card variant="elevated">
           <JoinTeamPanel
@@ -79,6 +78,6 @@ export default async function JoinTeamPage({ params }: JoinPageProps) {
           />
         </Card>
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -3,10 +3,21 @@ const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
 export type ProjectSummary = {
   id: string;
   title: string;
+  tagline?: string | null;
   summary: string;
   trackName: string;
   teamName: string;
   repoUrl: string;
+  demoUrl?: string | null;
+  liveUrl?: string | null;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  techTags?: string[];
+};
+
+export type ProjectDetail = ProjectSummary & {
+  teamId?: string;
+  members?: Array<{ name: string; email: string; role: string }>;
 };
 
 export type PrizeInfo = {
@@ -18,11 +29,36 @@ export type PrizeInfo = {
   trackName: string | null;
 };
 
+export type EventPhase =
+  | "DRAFT"
+  | "UPCOMING"
+  | "REGISTRATION_OPEN"
+  | "REGISTRATION_CLOSED"
+  | "LIVE"
+  | "SUBMISSION_OPEN"
+  | "SUBMISSIONS_CLOSED"
+  | "JUDGING"
+  | "COMPLETED";
+
+export type EventState = {
+  phase: EventPhase;
+  registrationOpen: boolean;
+  submissionsOpen: boolean;
+  submissionsClose?: string;
+};
+
 export type EventInfo = {
   id: string;
+  slug?: string;
   name: string;
+  description?: string | null;
+  shortDescription?: string | null;
   submissionsClose: string;
-  tracks: Array<{ id: string; name: string }>;
+  registrationOpens?: string | null;
+  registrationCloses?: string | null;
+  maxTeamSize?: number;
+  state?: EventState;
+  tracks: Array<{ id: string; name: string; description?: string | null }>;
   prizes: PrizeInfo[];
   rubric: Array<{ name: string; weight: number }>;
 };
@@ -30,11 +66,17 @@ export type EventInfo = {
 export type MyProject = {
   id: string;
   title: string;
+  tagline?: string | null;
   summary: string;
   trackName: string;
   trackId: string;
   teamName: string;
   repoUrl: string;
+  demoUrl?: string | null;
+  liveUrl?: string | null;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  techTags?: string[];
   status: "DRAFT" | "SUBMITTED";
   submittedAt: string | null;
 };
@@ -177,6 +219,23 @@ export async function fetchProjects(params?: {
 export async function fetchEvent(): Promise<EventInfo | null> {
   const data = await serverFetch("/api/event");
   return data?.event ?? null;
+}
+
+export async function fetchEvents(): Promise<EventInfo[]> {
+  const data = await serverFetch("/api/events");
+  return data?.events ?? [];
+}
+
+export async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
+  const data = await serverFetch(`/api/events/${slug}`);
+  return data?.event ?? null;
+}
+
+export async function fetchProjectDetail(
+  projectId: string,
+): Promise<ProjectDetail | null> {
+  const data = await serverFetch(`/api/projects/${projectId}`);
+  return data?.project ?? null;
 }
 
 export async function fetchPublicStats(): Promise<PublicStats | null> {
@@ -370,11 +429,84 @@ export async function createTeamClient(
   return { team: result.data?.team ?? null, error: result.error };
 }
 
+export async function fetchMyRegistrationClient(): Promise<{
+  registered: boolean;
+  registration: { registeredAt: string } | null;
+} | null> {
+  return clientFetch("/api/events/registration/mine");
+}
+
+export async function registerForEventClient(): Promise<{
+  ok: boolean;
+  alreadyRegistered: boolean;
+  error: string | null;
+}> {
+  const result = await clientPost<{
+    ok: boolean;
+    alreadyRegistered: boolean;
+  }>("/api/events/register", {});
+  return {
+    ok: Boolean(result.data?.ok),
+    alreadyRegistered: Boolean(result.data?.alreadyRegistered),
+    error: result.error,
+  };
+}
+
+export type AdminStats = {
+  users: number;
+  events: number;
+  projects: number;
+  participants: number;
+  judges: number;
+  organizers: number;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  suspended: boolean;
+  createdAt: string;
+};
+
+export async function fetchAdminStatsClient(): Promise<AdminStats | null> {
+  return clientFetch("/api/admin/stats");
+}
+
+export async function fetchAdminUsersClient(): Promise<AdminUser[]> {
+  const data = await clientFetch("/api/admin/users");
+  return data?.users ?? [];
+}
+
+export async function suspendUserClient(
+  userId: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  const res = await fetch(`/api/admin/users/${userId}/suspend`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: typeof data?.detail === "string" ? data.detail : "Request failed",
+    };
+  }
+  return { ok: true, error: null };
+}
+
 export async function saveProjectClient(
   payload: {
     title: string;
+    tagline?: string;
     summary: string;
     repo_url: string;
+    demo_url?: string;
+    live_url?: string;
+    video_url?: string;
+    thumbnail_url?: string;
+    tech_tags?: string[];
     track_id: string;
     status: "DRAFT" | "SUBMITTED";
   },

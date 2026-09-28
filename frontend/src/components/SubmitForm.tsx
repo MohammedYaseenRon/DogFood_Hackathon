@@ -12,8 +12,13 @@ import {
 
 export function SubmitForm({ event }: { event: EventInfo | null }) {
   const [title, setTitle] = useState("");
+  const [tagline, setTagline] = useState("");
   const [summary, setSummary] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [liveUrl, setLiveUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [techTags, setTechTags] = useState("");
   const [trackId, setTrackId] = useState("");
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectStatus, setProjectStatus] = useState<"DRAFT" | "SUBMITTED" | null>(
@@ -24,9 +29,7 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const closed = event
-    ? new Date() > new Date(event.submissionsClose)
-    : true;
+  const closed = event ? !event.state?.submissionsOpen : true;
 
   useEffect(() => {
     fetchMyProjectClient().then((data) => {
@@ -34,8 +37,13 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
       if (project) {
         setProjectId(project.id);
         setTitle(project.title);
+        setTagline(project.tagline ?? "");
         setSummary(project.summary);
         setRepoUrl(project.repoUrl);
+        setLiveUrl(project.liveUrl ?? "");
+        setVideoUrl(project.videoUrl ?? "");
+        setThumbnailUrl(project.thumbnailUrl ?? "");
+        setTechTags((project.techTags ?? []).join(", "));
         setTrackId(project.trackId);
         setProjectStatus(project.status);
       } else if (event?.tracks[0]) {
@@ -58,8 +66,16 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
     const { project, error: saveError } = await saveProjectClient(
       {
         title,
+        tagline: tagline.trim() || undefined,
         summary,
         repo_url: repoUrl,
+        live_url: liveUrl.trim() || undefined,
+        video_url: videoUrl.trim() || undefined,
+        thumbnail_url: thumbnailUrl.trim() || undefined,
+        tech_tags: techTags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
         track_id: trackId,
         status,
       },
@@ -136,6 +152,19 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
 
         <div>
           <label className="mb-2 block text-sm font-semibold text-zinc-700">
+            Tagline
+          </label>
+          <input
+            value={tagline}
+            onChange={(e) => setTagline(e.target.value)}
+            disabled={closed}
+            className={inputClass}
+            placeholder="One-line pitch for the gallery"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
             Project title
           </label>
           <input
@@ -173,6 +202,62 @@ export function SubmitForm({ event }: { event: EventInfo | null }) {
             type="url"
             className={inputClass}
             placeholder="https://github.com/..."
+          />
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
+              Live demo URL
+            </label>
+            <input
+              value={liveUrl}
+              onChange={(e) => setLiveUrl(e.target.value)}
+              disabled={closed}
+              type="url"
+              className={inputClass}
+              placeholder="https://..."
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-zinc-700">
+              Demo video URL
+            </label>
+            <input
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              disabled={closed}
+              type="url"
+              className={inputClass}
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
+            Thumbnail URL
+          </label>
+          <input
+            value={thumbnailUrl}
+            onChange={(e) => setThumbnailUrl(e.target.value)}
+            disabled={closed}
+            type="url"
+            className={inputClass}
+            placeholder="https://..."
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-zinc-700">
+            Tech tags
+          </label>
+          <input
+            value={techTags}
+            onChange={(e) => setTechTags(e.target.value)}
+            disabled={closed}
+            className={inputClass}
+            placeholder="React, Python, PostgreSQL"
           />
         </div>
 

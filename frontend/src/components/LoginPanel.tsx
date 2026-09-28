@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CredentialAuthForm } from "@/components/CredentialAuthForm";
 
 type RoleCard = {
   id: string;
@@ -46,7 +47,7 @@ const PRIMARY_ROLES: RoleCard[] = [
     label: "Admin",
     role: "ADMIN",
     desc: "Full platform access including event setup",
-    href: "/organizer/dashboard",
+    href: "/admin",
     gradient: "from-zinc-700 to-zinc-900",
     border: "hover:border-zinc-400",
     badge: "default",
@@ -106,6 +107,22 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-5">
+        <p className="mb-4 text-sm font-semibold text-zinc-700">
+          Sign in with email
+        </p>
+        <CredentialAuthForm mode="login" redirectTo={redirectTo} />
+      </div>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-zinc-200" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-3 text-zinc-400">Or use demo roles</span>
+        </div>
+      </div>
+
       <div className="space-y-3">
         {PRIMARY_ROLES.map((role) => (
           <button

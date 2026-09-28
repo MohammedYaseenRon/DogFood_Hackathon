@@ -74,6 +74,22 @@ const nextConfig: NextConfig = {
         source: "/api/events",
         destination: `${backendUrl}/api/events`,
       },
+      {
+        source: "/api/events/register",
+        destination: `${backendUrl}/api/events/register`,
+      },
+      {
+        source: "/api/events/registration/mine",
+        destination: `${backendUrl}/api/events/registration/mine`,
+      },
+      {
+        source: "/api/events/:slug",
+        destination: `${backendUrl}/api/events/:slug`,
+      },
+      {
+        source: "/api/admin/:path*",
+        destination: `${backendUrl}/api/admin/:path*`,
+      },
     ];
   },
 };

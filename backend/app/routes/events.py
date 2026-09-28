@@ -4,9 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import require_role
+import re
+
+from app.auth import get_session_user, require_role
 from app.database import get_db
-from app.models import Event, Prize, Role, RubricCriterion, Track, new_id
+from app.models import Event, EventRegistration, Prize, Role, RubricCriterion, Track, User, new_id
+from app.services.audit import log_action
+from app.services.event_state import can_register, event_state_payload
 
 router = APIRouter(tags=["events"])
 
@@ -48,13 +52,36 @@ def _load_event(db: Session, event_id: str | None = None) -> Event | None:
     return query.first()
 
 
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or new_id()[:8]
+
+
 def _serialize_event(event: Event) -> dict:
+    state = event_state_payload(event)
     return {
         "id": event.fixture_id,
+        "internalId": event.id,
+        "slug": event.slug or event.fixture_id,
         "name": event.name,
+        "description": event.description,
+        "shortDescription": event.short_description,
         "submissionsClose": event.submissions_close.isoformat() + "Z",
+        "registrationOpens": event.registration_opens.isoformat() + "Z"
+        if event.registration_opens
+        else None,
+        "registrationCloses": event.registration_closes.isoformat() + "Z"
+        if event.registration_closes
+        else None,
+        "maxTeamSize": event.max_team_size,
+        "state": state,
         "tracks": [
-            {"id": track.fixture_id, "name": track.name} for track in event.tracks
+            {
+                "id": track.fixture_id,
+                "name": track.name,
+                "description": track.description,
+            }
+            for track in event.tracks
         ],
         "prizes": [
             {
@@ -133,6 +160,101 @@ def get_event(db: Session = Depends(get_db)):
     return {"event": _serialize_event(event)}
 
 
+@router.get("/api/events")
+def list_events(db: Session = Depends(get_db)):
+    events = db.query(Event).filter(Event.published.is_(True)).all()
+    return {"events": [_serialize_event(event) for event in events]}
+
+
+@router.get("/api/events/{slug}")
+def get_event_by_slug(slug: str, db: Session = Depends(get_db)):
+    event = (
+        db.query(Event)
+        .options(
+            joinedload(Event.tracks),
+            joinedload(Event.rubric),
+            joinedload(Event.prizes).joinedload(Prize.track),
+        )
+        .filter((Event.slug == slug) | (Event.fixture_id == slug))
+        .first()
+    )
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"event": _serialize_event(event)}
+
+
+@router.get("/api/events/registration/mine")
+def my_registration(request: Request, db: Session = Depends(get_db)):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    event = db.query(Event).first()
+    if not event:
+        return {"registered": False, "registration": None}
+    reg = (
+        db.query(EventRegistration)
+        .filter(EventRegistration.event_id == event.id, EventRegistration.user_id == user.id)
+        .first()
+    )
+    if not reg:
+        return {"registered": False, "registration": None}
+    return {
+        "registered": True,
+        "registration": {
+            "eventId": event.fixture_id,
+            "registeredAt": reg.registered_at.isoformat() + "Z",
+        },
+    }
+
+
+@router.post("/api/events/register")
+def register_for_event(request: Request, db: Session = Depends(get_db)):
+    user = get_session_user(db, request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if user.role not in {Role.VISITOR, Role.PARTICIPANT}:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    event = db.query(Event).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not can_register(event):
+        raise HTTPException(status_code=403, detail="Registration is not open")
+
+    existing = (
+        db.query(EventRegistration)
+        .filter(EventRegistration.event_id == event.id, EventRegistration.user_id == user.id)
+        .first()
+    )
+    if existing:
+        return {
+            "ok": True,
+            "alreadyRegistered": True,
+            "registration": {
+                "registeredAt": existing.registered_at.isoformat() + "Z",
+            },
+        }
+
+    if user.role == Role.VISITOR:
+        user.role = Role.PARTICIPANT
+
+    reg = EventRegistration(event_id=event.id, user_id=user.id)
+    db.add(reg)
+    log_action(
+        db,
+        actor_id=user.id,
+        action="event.registered",
+        resource_type="event",
+        resource_id=event.id,
+    )
+    db.commit()
+    return {
+        "ok": True,
+        "alreadyRegistered": False,
+        "registration": {"registeredAt": reg.registered_at.isoformat() + "Z"},
+    }
+
+
 @router.post("/api/events")
 def create_event(body: EventConfigBody, request: Request, db: Session = Depends(get_db)):
     require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
@@ -143,9 +265,11 @@ def create_event(body: EventConfigBody, request: Request, db: Session = Depends(
             detail="An event already exists. Use edit to update it.",
         )
 
+    name = body.name.strip()
     event = Event(
         fixture_id=new_id(),
-        name=body.name.strip(),
+        slug=_slugify(name),
+        name=name,
         submissions_close=_parse_close_date(body.submissions_close),
     )
     db.add(event)

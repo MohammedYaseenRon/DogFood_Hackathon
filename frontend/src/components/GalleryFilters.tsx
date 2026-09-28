@@ -29,14 +29,14 @@ export function GalleryFilters({ tracks }: { tracks: Track[] }) {
   const activeTrack = tracks.find((t) => t.id === track);
 
   return (
-    <div className="sticky top-[73px] z-40 border-b border-zinc-200 bg-[#f8f9fa]/95 py-5 backdrop-blur-md">
+    <div className="sticky top-[57px] z-40 border-b border-zinc-200/80 bg-white/90 py-4 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="search"
-              placeholder="Search projects by keyword, #tag, @username, and more..."
+              placeholder="Search projects by name, tech, team, or track..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && apply(q, track)}

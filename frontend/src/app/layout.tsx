@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sora.variable} ${dmSans.variable}`}>
-      <body className="min-h-screen bg-[#fafafa] font-sans antialiased">
+      <body className="min-h-screen bg-zinc-50 font-sans antialiased">
         <Nav />
         {children}
         <SiteFooter />

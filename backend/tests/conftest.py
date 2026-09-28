@@ -12,7 +12,18 @@ os.environ["APP_BASE_URL"] = "http://localhost:8080"
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import Event, Role, Session as DbSession, Team, TeamInvite, TeamMember, TeamMemberRole, User, new_id
+from app.models import (
+    Event,
+    Role,
+    Session as DbSession,
+    Team,
+    TeamInvite,
+    TeamMember,
+    TeamMemberRole,
+    Track,
+    User,
+    new_id,
+)
 
 
 @pytest.fixture()
@@ -27,11 +38,18 @@ def client():
 
     event = Event(
         fixture_id="evt_test",
+        slug="test-hack",
         name="Test Hack",
         submissions_close=datetime.utcnow() + timedelta(days=7),
+        registration_opens=datetime.utcnow() - timedelta(days=1),
+        registration_closes=datetime.utcnow() + timedelta(days=30),
+        published=True,
     )
     db = TestingSessionLocal()
     db.add(event)
+    db.flush()
+
+    db.add(Track(fixture_id="trk_test", name="General", event_id=event.id))
     db.flush()
 
     owner = User(email="owner@test.local", role=Role.PARTICIPANT, name="Owner")
@@ -76,7 +94,12 @@ def client():
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
-        test_client.testing_session = TestingSessionLocal
+        test_client.testing_session_factory = TestingSessionLocal
+
+        def open_session():
+            return TestingSessionLocal()
+
+        test_client.testing_session = open_session
         yield test_client
     app.dependency_overrides.clear()
 

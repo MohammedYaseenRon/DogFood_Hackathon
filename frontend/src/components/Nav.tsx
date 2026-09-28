@@ -6,18 +6,16 @@ import { useEffect, useState } from "react";
 import { fetchMeClient, type UserInfo } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 
-const homeLinks = [
+const publicLinks = [
   { href: "/projects", label: "Gallery" },
-  { href: "/event", label: "Event" },
-  { href: "/login", label: "About" },
+  { href: "/events", label: "Events" },
 ];
 
-const appLinks = [
-  { href: "/projects", label: "Gallery" },
-  { href: "/event", label: "Event" },
+const roleLinks = [
   { href: "/participant", label: "Participant" },
   { href: "/judging", label: "Judging" },
   { href: "/organizer/dashboard", label: "Organizer" },
+  { href: "/admin", label: "Admin" },
 ];
 
 const roleTone: Record<string, "brand" | "success" | "warning" | "default"> = {
@@ -31,52 +29,36 @@ const roleTone: Record<string, "brand" | "success" | "warning" | "default"> = {
 export function Nav() {
   const pathname = usePathname();
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [scrolled, setScrolled] = useState(false);
   const isHome = pathname === "/";
-  const isLogin = pathname === "/login";
-  const links = isHome ? homeLinks : appLinks;
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const links = isHome ? publicLinks : [...publicLinks, ...roleLinks];
 
   useEffect(() => {
     fetchMeClient().then(setUser);
   }, [pathname]);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const onHero = isHome && !scrolled;
-
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        onHero
-          ? "border-b border-transparent bg-white/80 backdrop-blur-md"
-          : "border-b border-zinc-200/80 bg-white/95 shadow-sm backdrop-blur-xl"
-      }`}
-    >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/90 shadow-sm backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3770FF] text-sm font-bold text-white shadow-md shadow-blue-500/20">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-sm font-bold text-white shadow-md shadow-violet-500/25">
             D
           </span>
-          <span className="font-display text-xl font-bold text-zinc-900">
-            Dogfood
-          </span>
+          <span className="font-display text-xl font-bold text-zinc-900">Dogfood</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
-            const active = pathname.startsWith(link.href);
+            const active =
+              pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
                   active
-                    ? "text-[#3770FF]"
-                    : "text-zinc-600 hover:text-zinc-900"
+                    ? "bg-violet-100 text-violet-700"
+                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                 }`}
               >
                 {link.label}
@@ -85,24 +67,24 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {user && !isLogin ? (
+        <div className="flex items-center gap-2.5">
+          {user && !isAuthPage ? (
             <Badge tone={roleTone[user.role] ?? "default"}>{user.role}</Badge>
           ) : null}
-          {isHome ? (
+          {!isAuthPage ? (
             <Link
-              href="/organizer/dashboard"
-              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 sm:inline-block"
+              href={user ? "/login" : "/register"}
+              className="hidden rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 sm:inline-block"
             >
-              Organize a hackathon
+              {user ? "Switch role" : "Register"}
             </Link>
           ) : null}
-          {!isLogin ? (
+          {!isAuthPage ? (
             <Link
               href="/login"
-              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+              className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
             >
-              {user ? "Switch role" : "Sign in"}
+              {user ? "Account" : "Sign in"}
             </Link>
           ) : null}
         </div>

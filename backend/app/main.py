@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal, init_db
 from app.models import Event
 from app.routes import (
+    admin,
     auth_routes,
     events,
     export,
@@ -52,6 +53,7 @@ app.include_router(events.router)
 app.include_router(teams.router)
 app.include_router(invites.router)
 app.include_router(organizer.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

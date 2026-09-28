@@ -1,7 +1,8 @@
 import re
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.models import Role, Session as DbSession, User
@@ -23,7 +24,35 @@ def get_session_user(db: Session, request: Request) -> User | None:
     if not session or session.expires_at < datetime.utcnow():
         return None
 
-    return db.get(User, session.user_id)
+    user = db.get(User, session.user_id)
+    if not user or user.suspended:
+        return None
+    return user
+
+
+def create_user_session(db: Session, user: User, response: Response) -> str:
+    session_key = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(days=14)
+    db.add(DbSession(key=session_key, user_id=user.id, expires_at=expires_at))
+    response.set_cookie(
+        key="session",
+        value=session_key,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=14 * 24 * 3600,
+    )
+    return session_key
+
+
+def serialize_user(user: User) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role.value,
+        "fixtureId": user.fixture_id,
+    }
 
 
 def require_role(db: Session, request: Request, roles: list[Role]) -> User:

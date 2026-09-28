@@ -68,33 +68,38 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
     team.myRole === "OWNER" || team.myRole === "ADMIN";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-6 py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.18em] text-violet-600 uppercase">
-            Your team
-          </p>
-          <h1 className="font-display mt-2 text-3xl font-bold text-zinc-950">{team.name}</h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            {team.memberCount ?? members.length} member
-            {(team.memberCount ?? members.length) === 1 ? "" : "s"}
-            {team.myRole ? (
-              <>
-                {" "}
-                · You are <span className="font-semibold text-zinc-700">{team.myRole}</span>
-              </>
-            ) : null}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ButtonLink href="/participant" variant="secondary" size="sm">
-            Dashboard
-          </ButtonLink>
-          <ButtonLink href="/projects/new" size="sm">
-            Submit project
-          </ButtonLink>
+    <div>
+      <div className="relative overflow-hidden border-b border-white/60 bg-gradient-to-br from-amber-50 via-white to-orange-50/80">
+        <div className="page-dot-grid absolute inset-0 opacity-50" />
+        <div className="relative mx-auto flex max-w-4xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold tracking-[0.2em] text-amber-600 uppercase">
+              Your team
+            </p>
+            <h1 className="font-display mt-3 text-3xl font-bold text-zinc-950">{team.name}</h1>
+            <p className="mt-2 text-sm text-zinc-600">
+              {team.memberCount ?? members.length} member
+              {(team.memberCount ?? members.length) === 1 ? "" : "s"}
+              {team.myRole ? (
+                <>
+                  {" "}
+                  · You are <span className="font-semibold text-zinc-800">{team.myRole}</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/participant" variant="secondary" size="sm">
+              Dashboard
+            </ButtonLink>
+            <ButtonLink href="/projects/new" size="sm">
+              Submit project
+            </ButtonLink>
+          </div>
         </div>
       </div>
+
+      <div className="page-surface mx-auto max-w-4xl space-y-6 px-6 py-8">
 
       <Card>
         <h2 className="font-display text-lg font-bold text-zinc-950">Members</h2>
@@ -115,6 +120,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
       </Card>
 
       {canManageInvites ? <InviteMembersSection teamId={teamId} /> : null}
+      </div>
     </div>
   );
 }

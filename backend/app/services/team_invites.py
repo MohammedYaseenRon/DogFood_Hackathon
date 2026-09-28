@@ -193,7 +193,7 @@ def invite_preview(db: Session, token: str) -> dict:
 def join_team_with_token(db: Session, user: User, token: str) -> dict:
     invite = (
         db.query(TeamInvite)
-        .options(joinedload(TeamInvite.team))
+        .options(joinedload(TeamInvite.team).joinedload(Team.event))
         .filter(TeamInvite.token == token)
         .with_for_update()
         .first()
@@ -224,6 +224,10 @@ def _join_team_direct(
             "teamName": team.name,
             "message": "Already a member of this team",
         }
+
+    max_size = team.event.max_team_size if team.event else 4
+    if len(team.members) >= max_size:
+        raise HTTPException(status_code=409, detail="Team has reached maximum size")
 
     other = user_team_for_event(db, user.id, team.event_id)
     if other and other.team_id != team.id:
