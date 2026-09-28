@@ -1,23 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import type { EventInfo } from "@/lib/api";
-
-function phaseLabel(phase?: string) {
-  switch (phase) {
-    case "REGISTRATION_OPEN":
-      return { text: "Registration open", tone: "success" as const };
-    case "SUBMISSION_OPEN":
-      return { text: "Submissions open", tone: "success" as const };
-    case "SUBMISSIONS_CLOSED":
-      return { text: "Submissions closed", tone: "warning" as const };
-    case "JUDGING":
-      return { text: "Judging", tone: "brand" as const };
-    case "COMPLETED":
-      return { text: "Completed", tone: "default" as const };
-    default:
-      return { text: "Upcoming", tone: "default" as const };
-  }
-}
+import { formatDate, phaseInfo } from "@/lib/format";
 
 function bannerGradient(name: string) {
   const palettes = [
@@ -31,7 +15,7 @@ function bannerGradient(name: string) {
 }
 
 export function EventCard({ event }: { event: EventInfo }) {
-  const status = phaseLabel(event.state?.phase);
+  const status = phaseInfo(event.state?.phase);
   const slug = event.slug || event.id;
   const gradient = bannerGradient(event.name);
 
@@ -45,7 +29,7 @@ export function EventCard({ event }: { event: EventInfo }) {
             <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
               Hackathon
             </span>
-            <Badge tone={status.tone}>{status.text}</Badge>
+            <Badge tone={status.tone}>{status.label}</Badge>
           </div>
           <h2 className="relative mt-6 font-display text-2xl font-bold text-white sm:text-3xl">
             {event.name}
@@ -70,7 +54,7 @@ export function EventCard({ event }: { event: EventInfo }) {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700">
               <CalendarIcon />
-              Closes {new Date(event.submissionsClose).toLocaleDateString()}
+              Deadline {formatDate(event.submissionsClose)}
             </span>
             {(event.prizes ?? []).length > 0 ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">

@@ -12,10 +12,13 @@ export function SubmitProjectCta({
   size = "sm",
   className = "",
   label = "Submit project",
+  event,
 }: {
   size?: "sm" | "md" | "lg";
   className?: string;
   label?: string;
+  /** Event slug to submit to; defaults to the participant's open event. */
+  event?: string;
 }) {
   const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
 
@@ -33,28 +36,34 @@ export function SubmitProjectCta({
 
   if (user?.role === "PARTICIPANT") {
     return (
-      <ButtonLink href="/projects/new" size={size} className={className}>
-        {label}
+      <ButtonLink
+        href={event ? `/projects/new?event=${event}` : "/participant"}
+        size={size}
+        className={className}
+      >
+        {event ? label : "My submissions"}
       </ButtonLink>
     );
   }
 
-  if (user) {
+  if (user?.role === "VISITOR") {
     return (
       <ButtonLink
-        href="/events"
+        href={event ? `/events/${event}` : "/events"}
         size={size}
         variant="secondary"
         className={className}
       >
-        Register for event to submit
+        Register for an event to submit
       </ButtonLink>
     );
   }
 
+  if (user) return null;
+
   return (
     <ButtonLink
-      href="/login?redirect=/events"
+      href={`/login?redirect=${encodeURIComponent(event ? `/events/${event}` : "/events")}`}
       size={size}
       className={className}
     >
@@ -93,9 +102,12 @@ function GateAside({
 export function ParticipantGate({
   children,
   eventHref = "/events",
+  allowVisitors = false,
 }: {
   children: React.ReactNode;
   eventHref?: string;
+  /** Visitors may pass (e.g. creating a team registers them as a participant). */
+  allowVisitors?: boolean;
 }) {
   const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
 
@@ -111,20 +123,23 @@ export function ParticipantGate({
     );
   }
 
-  if (user?.role === "PARTICIPANT") {
+  if (user?.role === "PARTICIPANT" || (allowVisitors && user?.role === "VISITOR")) {
     return <>{children}</>;
   }
 
-  const isVisitor = user?.role === "VISITOR" || Boolean(user);
+  const isVisitor = Boolean(user);
+  const isStaff = Boolean(user && user.role !== "VISITOR");
 
   return (
     <FormPageLayout
       eyebrow="Submission"
-      title={isVisitor ? "Become a participant first" : "Sign in required"}
+      title={isStaff ? "Participant area" : isVisitor ? "Become a participant first" : "Sign in required"}
       description={
-        isVisitor
-          ? "You're signed in, but visitors can't submit projects. Register for a hackathon to unlock participant access."
-          : "Sign in as a participant to create or edit your team's hackathon submission."
+        isStaff
+          ? `You're signed in as ${user?.role.toLowerCase()}. Staff accounts can't join teams or submit projects.`
+          : isVisitor
+            ? "You're signed in, but visitors can't submit projects yet. Register for a hackathon to become a participant."
+            : "Sign in as a participant to create or edit your team's hackathon submission."
       }
       aside={
         <GateAside

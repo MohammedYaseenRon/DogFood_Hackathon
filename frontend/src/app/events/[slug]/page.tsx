@@ -1,17 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventRegisterButton } from "@/components/EventRegisterButton";
+import { OrganizerOnly } from "@/components/RoleGuards";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { fetchEventBySlug } from "@/lib/api";
+import { formatDateTime, phaseInfo, relativeTime } from "@/lib/format";
+import { fetchEventBySlug } from "@/lib/server-api";
 
 type EventSlugPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-function phaseLabel(phase: string) {
-  return phase.replace(/_/g, " ");
-}
 
 export default async function EventSlugPage({ params }: EventSlugPageProps) {
   const { slug } = await params;
@@ -21,31 +19,27 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
     notFound();
   }
 
-  const phase = event.state?.phase ?? "UPCOMING";
-  const open = Boolean(event.state?.registrationOpen);
-  const submissionsOpen = Boolean(event.state?.submissionsOpen);
+  const phase = phaseInfo(event.state.phase);
+  // Server clock from the API response: keeps render pure and matches deadline enforcement.
+  const now = new Date(event.state.serverTime ?? event.submissionsClose).getTime();
 
   const timeline = [
-    {
-      label: "Registration opens",
-      at: event.registrationOpens,
-      tone: "emerald",
-    },
-    {
-      label: "Registration closes",
-      at: event.registrationCloses,
-      tone: "amber",
-    },
-    {
-      label: "Submissions close",
-      at: event.submissionsClose,
-      tone: "violet",
-    },
-  ].filter((item) => item.at);
+    { label: "Registration opens", at: event.registrationOpens },
+    { label: "Registration closes", at: event.registrationCloses },
+    { label: "Hacking starts", at: event.eventStarts },
+    { label: "Hacking ends", at: event.eventEnds },
+    { label: "Submission deadline", at: event.submissionsClose },
+    { label: "Judging starts", at: event.judgingStarts },
+    { label: "Judging ends", at: event.judgingEnds },
+    { label: "Results announced", at: event.resultsAt },
+  ]
+    .filter((item): item is { label: string; at: string } => Boolean(item.at))
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+  const deadlinePassed = new Date(event.submissionsClose).getTime() < now;
 
   return (
     <main className="min-h-screen bg-[#0b1020] text-white">
-      {/* Devpost-style dark hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(124,58,237,0.45),_transparent_50%),radial-gradient(ellipse_at_bottom_left,_rgba(14,165,233,0.25),_transparent_45%)]" />
         <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
@@ -55,17 +49,15 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
             <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-violet-200 backdrop-blur">
               Hackathon
             </span>
-            <Badge tone={open ? "success" : submissionsOpen ? "brand" : "warning"}>
-              {phaseLabel(phase)}
-            </Badge>
+            <Badge tone={phase.tone}>{phase.label}</Badge>
+            {!event.published ? <Badge tone="warning">Hidden from public</Badge> : null}
           </div>
 
           <h1 className="font-display mt-5 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             {event.name}
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-zinc-300">
-            {event.description ||
-              event.shortDescription ||
+            {event.shortDescription ||
               "Build something ambitious. Form a team. Ship before the deadline."}
           </p>
 
@@ -74,69 +66,73 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
               href="#register"
               className="inline-flex items-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition hover:scale-[1.02]"
             >
-              {open ? "Register to participate →" : "View registration"}
+              {event.state.registrationOpen ? "Register to participate →" : "Your participation →"}
             </a>
-            <ButtonLink href="/projects" variant="outline" size="md">
-              Browse gallery
+            <ButtonLink href={`/projects?event=${event.slug}`} variant="outline" size="md">
+              Browse projects
             </ButtonLink>
+            <OrganizerOnly>
+              <ButtonLink href={`/organizer/events/${event.slug}`} variant="outline" size="md">
+                Manage event
+              </ButtonLink>
+            </OrganizerOnly>
           </div>
 
-          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <HeroStat
+              label={deadlinePassed ? "Submissions closed" : "Submissions close"}
+              value={formatDateTime(event.submissionsClose)}
+              hint={relativeTime(event.submissionsClose, now)}
+              small
+            />
             <HeroStat label="Tracks" value={String(event.tracks.length)} />
-            <HeroStat
-              label="Prizes"
-              value={String((event.prizes ?? []).length)}
-            />
-            <HeroStat
-              label="Max team size"
-              value={String(event.maxTeamSize ?? 4)}
-            />
+            <HeroStat label="Prizes" value={String(event.prizes.length)} />
+            <HeroStat label="Team size" value={`1–${event.maxTeamSize}`} />
           </div>
         </div>
       </section>
 
-      {/* Content on light surface */}
       <section className="rounded-t-[2.5rem] bg-[#f4f6fb] pb-20 pt-12 text-zinc-900">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1fr_340px]">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-12">
-            {/* Timeline */}
+            {event.description ? (
+              <div>
+                <h2 className="font-display text-2xl font-bold">About</h2>
+                <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-zinc-700">
+                  {event.description}
+                </p>
+              </div>
+            ) : null}
+
             <div>
               <h2 className="font-display text-2xl font-bold">Timeline</h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                Key dates for this hackathon
-              </p>
-              <ol className="relative mt-8 space-y-0 border-l-2 border-violet-200 pl-8">
-                {timeline.map((item, index) => (
-                  <li key={item.label} className="relative pb-10 last:pb-0">
-                    <span
-                      className={`absolute -left-[41px] flex h-6 w-6 items-center justify-center rounded-full border-4 border-white text-[10px] font-bold text-white shadow ${
-                        item.tone === "emerald"
-                          ? "bg-emerald-500"
-                          : item.tone === "amber"
-                            ? "bg-amber-500"
-                            : "bg-violet-600"
-                      }`}
-                    >
-                      {index + 1}
-                    </span>
-                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-zinc-900">
-                      {item.at
-                        ? new Date(item.at).toLocaleString(undefined, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })
-                        : "—"}
-                    </p>
-                  </li>
-                ))}
+              <p className="mt-1 text-sm text-zinc-500">Shown in your local time.</p>
+              <ol className="relative mt-8 border-l-2 border-violet-200 pl-8">
+                {timeline.map((item, index) => {
+                  const past = new Date(item.at).getTime() <= now;
+                  return (
+                    <li key={item.label} className="relative pb-8 last:pb-0">
+                      <span
+                        className={`absolute -left-[41px] flex h-6 w-6 items-center justify-center rounded-full border-4 border-white text-[10px] font-bold text-white shadow ${
+                          past ? "bg-zinc-400" : "bg-violet-600"
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        {item.label}
+                      </p>
+                      <p className={`mt-1 text-base font-semibold ${past ? "text-zinc-500" : "text-zinc-900"}`}>
+                        {formatDateTime(item.at)}{" "}
+                        <span className="text-sm font-normal text-zinc-400">· {relativeTime(item.at, now)}</span>
+                      </p>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
 
-            {/* Prizes */}
-            {(event.prizes ?? []).length > 0 ? (
+            {event.prizes.length > 0 ? (
               <div>
                 <h2 className="font-display text-2xl font-bold">Prizes</h2>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -144,17 +140,10 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                     <div
                       key={prize.id}
                       className={`relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm ${
-                        i === 0 ? "sm:col-span-2 bg-gradient-to-br from-amber-50 to-white" : ""
+                        i === 0 ? "bg-gradient-to-br from-amber-50 to-white sm:col-span-2" : ""
                       }`}
                     >
-                      {i === 0 ? (
-                        <span className="absolute right-4 top-4 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-950">
-                          Top prize
-                        </span>
-                      ) : null}
-                      <p className="text-sm font-semibold text-zinc-500">
-                        {prize.name}
-                      </p>
+                      <p className="text-sm font-semibold text-zinc-500">{prize.name}</p>
                       <p className="font-display mt-2 text-3xl font-extrabold text-violet-700">
                         {prize.amount}
                       </p>
@@ -167,31 +156,26 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
               </div>
             ) : null}
 
-            {/* Tracks */}
             <div>
               <h2 className="font-display text-2xl font-bold">Tracks</h2>
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {event.tracks.map((track) => (
-                  <div
+                  <Link
                     key={track.id}
+                    href={`/projects?event=${event.slug}&track=${track.id}`}
                     className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white">
                       {track.name.slice(0, 1)}
                     </div>
                     <p className="mt-3 font-semibold text-zinc-900">{track.name}</p>
-                    {track.description ? (
-                      <p className="mt-1 text-sm text-zinc-500">{track.description}</p>
-                    ) : (
-                      <p className="mt-1 text-xs text-zinc-400">Open track</p>
-                    )}
-                  </div>
+                    <p className="mt-1 text-sm text-zinc-500">{track.description || "Open track"}</p>
+                  </Link>
                 ))}
               </div>
             </div>
 
-            {/* Rubric */}
-            {(event.rubric ?? []).length > 0 ? (
+            {event.rubric.length > 0 ? (
               <div>
                 <h2 className="font-display text-2xl font-bold">Judging rubric</h2>
                 <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -205,9 +189,7 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                     <tbody>
                       {event.rubric.map((c) => (
                         <tr key={c.name} className="border-t border-zinc-100">
-                          <td className="px-6 py-4 font-medium capitalize text-zinc-900">
-                            {c.name}
-                          </td>
+                          <td className="px-6 py-4 font-medium capitalize text-zinc-900">{c.name}</td>
                           <td className="px-6 py-4">
                             <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
                               ×{c.weight}
@@ -222,7 +204,6 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
             ) : null}
           </div>
 
-          {/* Sticky register panel */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div
               id="register"
@@ -233,21 +214,20 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                   Join this hackathon
                 </p>
                 <p className="mt-2 text-lg font-bold">
-                  {open ? "Registration is open" : "Registration status"}
+                  {event.state.registrationOpen ? "Registration is open" : "Your participation"}
                 </p>
               </div>
               <div className="p-6">
                 <EventRegisterButton event={event} />
                 <div className="mt-6 space-y-2 border-t border-zinc-100 pt-5 text-xs text-zinc-500">
                   <p>
-                    After you register you become a{" "}
-                    <strong className="text-zinc-800">PARTICIPANT</strong> and can
-                    form teams + submit projects.
+                    Teams of up to {event.maxTeamSize}. Drafts can be edited until{" "}
+                    <strong className="text-zinc-800">{formatDateTime(event.submissionsClose)}</strong>
+                    ; after that nothing can change.
                   </p>
                   <p>
-                    Already a participant?{" "}
                     <Link href="/participant" className="font-semibold text-violet-600">
-                      Open your hub →
+                      Open your participant hub →
                     </Link>
                   </p>
                 </div>
@@ -260,13 +240,22 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
+function HeroStat({
+  label,
+  value,
+  hint,
+  small = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  small?: boolean;
+}) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
-      <p className="font-display mt-1 text-3xl font-bold text-white">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className={`font-display mt-1 font-bold text-white ${small ? "text-lg" : "text-3xl"}`}>{value}</p>
+      {hint ? <p className="mt-0.5 text-xs text-zinc-400">{hint}</p> : null}
     </div>
   );
 }

@@ -4,7 +4,9 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageSection, PageShell } from "@/components/ui/PageShell";
-import { fetchInvitePreview } from "@/lib/api";
+import { Alert } from "@/components/ui/Alert";
+import { formatDateTime } from "@/lib/format";
+import { fetchInvitePreview } from "@/lib/server-api";
 
 type JoinPageProps = {
   params: Promise<{ token: string }>;
@@ -40,13 +42,19 @@ export default async function JoinTeamPage({ params }: JoinPageProps) {
       tone="amber"
       eyebrow="Team invitation"
       title={`Join ${preview.team.name}`}
-      description="You've been invited to collaborate on this hackathon team."
+      description={
+        preview.event
+          ? `You've been invited to join this team for ${preview.event.name}.`
+          : "You've been invited to collaborate on this hackathon team."
+      }
       maxWidth="max-w-xl"
       badge={
         <>
-          <Badge tone="brand">{preview.team.memberCount} members</Badge>
+          <Badge tone="brand">
+            {preview.team.memberCount}/{preview.team.maxTeamSize} members
+          </Badge>
           {preview.remainingUses != null ? (
-            <Badge tone="default">{preview.remainingUses} spots left</Badge>
+            <Badge tone="default">{preview.remainingUses} invite uses left</Badge>
           ) : null}
         </>
       }
@@ -69,6 +77,21 @@ export default async function JoinTeamPage({ params }: JoinPageProps) {
             </ul>
           </Card>
         </PageSection>
+
+        {preview.event && !preview.event.teamFormationOpen ? (
+          <Alert tone="warning" title="Team formation is closed">
+            {preview.event.name} stopped accepting team changes (deadline{" "}
+            {formatDateTime(preview.event.submissionsClose)}).
+          </Alert>
+        ) : null}
+        {preview.team.memberCount >= preview.team.maxTeamSize ? (
+          <Alert tone="warning" title="This team is full">
+            Ask the team owner to make room, or create your own team.
+          </Alert>
+        ) : null}
+        {preview.expiresAt ? (
+          <p className="text-sm text-zinc-500">This link expires {formatDateTime(preview.expiresAt)}.</p>
+        ) : null}
 
         <Card variant="elevated">
           <JoinTeamPanel

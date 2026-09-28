@@ -7,7 +7,7 @@ export function DropJawsStats({ stats }: { stats: PublicStats | null }) {
     { value: `${stats.projectCount}+`, label: "projects" },
     { value: `${stats.judgeCount}+`, label: "judges" },
     { value: `${stats.trackCount}`, label: "tracks" },
-    { value: "1", label: "live event" },
+    { value: `${stats.eventCount}`, label: stats.eventCount === 1 ? "event" : "events" },
   ];
 
   return (

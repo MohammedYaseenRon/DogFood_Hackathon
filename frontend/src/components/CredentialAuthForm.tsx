@@ -5,18 +5,18 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { canAccess, homeForRole, safeRedirect } from "@/lib/role-auth";
 
 type Mode = "login" | "register";
 
 export function CredentialAuthForm({
   mode,
   redirectTo,
-  expectedRole,
   roleMode,
 }: {
   mode: Mode;
   redirectTo?: string;
-  /** When set, email login must match this role or show an error. */
+  /** Role the calling page expects; other roles land on their own dashboard. */
   expectedRole?: string;
   roleMode?: string;
 }) {
@@ -48,46 +48,25 @@ export function CredentialAuthForm({
     setLoading(false);
 
     if (!res.ok) {
-      setError(typeof data?.detail === "string" ? data.detail : "Request failed");
+      const detail = data?.detail;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail) && detail[0]?.msg
+            ? String(detail[0].msg).replace(/^Value error, /, "")
+            : "Something went wrong. Please try again.",
+      );
       return;
     }
 
     const role = data?.user?.role as string | undefined;
 
-    if (expectedRole && role && role !== expectedRole) {
-      setError(
-        `Your account is a ${role}. Email login cannot switch roles — use the demo ${expectedRole.toLowerCase()} button instead.`,
-      );
-      return;
-    }
+    // A different role than the page asked for still signs in — the user is
+    // sent to their own dashboard instead of a page they can't use. Only follow the redirect if this role can actually use that page.
+    const requested = safeRedirect(redirectTo, "");
+    const next = requested && canAccess(requested, role) ? requested : homeForRole(role);
 
-    let next = redirectTo;
-    if (next === "/participant" && role && role !== "PARTICIPANT") {
-      next = "/events";
-    }
-    if (next === "/projects/new" && role && role !== "PARTICIPANT") {
-      next = "/events";
-    }
-    if (next?.startsWith("/organizer") && role && role !== "ORGANIZER" && role !== "ADMIN") {
-      next = "/events";
-    }
-    if (next?.startsWith("/judging") && role && role !== "JUDGE") {
-      next = "/events";
-    }
-    if (next?.startsWith("/admin") && role && role !== "ADMIN") {
-      next = "/events";
-    }
-
-    const fallback =
-      role === "PARTICIPANT"
-        ? "/participant"
-        : role === "ORGANIZER" || role === "ADMIN"
-          ? "/organizer/dashboard"
-          : role === "JUDGE"
-            ? "/judging"
-            : "/events";
-
-    router.push(next || fallback);
+    router.push(next);
     router.refresh();
   }
 

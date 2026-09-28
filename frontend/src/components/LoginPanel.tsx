@@ -6,6 +6,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CredentialAuthForm } from "@/components/CredentialAuthForm";
+import { logoutClient } from "@/lib/api";
+import { canAccess, safeRedirect } from "@/lib/role-auth";
 
 type RoleCard = {
   id: string;
@@ -102,12 +104,14 @@ export function LoginDemoRoles({ redirectTo }: { redirectTo?: string }) {
       return;
     }
     setMessage(`Signed in as ${label}`);
-    router.push(redirectTo || href);
+    const role = data?.user?.role as string | undefined;
+    const requested = safeRedirect(redirectTo, "");
+    router.push(requested && canAccess(requested, role) ? requested : href);
     router.refresh();
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    await logoutClient();
     setMessage("Signed out");
     router.refresh();
   }

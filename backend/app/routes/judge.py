@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.auth import require_role, resolve_judge_alias
 from app.database import get_db
 from app.lib.scoring import validate_criteria, weighted_total
-from app.models import Event, JudgeAssignment, Project, Role, RubricCriterion, Score
+from app.models import JudgeAssignment, Project, Role, RubricCriterion, Score, Team
+from app.services.events import default_event, resolve_event
 
 router = APIRouter()
 
@@ -16,16 +17,29 @@ class ScoreSubmit(BaseModel):
     comment: str = ""
 
 
-def get_event_rubric(db: Session) -> list[RubricCriterion]:
-    event = db.query(Event).first()
-    if not event:
+def rubric_for_event(db: Session, event_id: str | None) -> list[RubricCriterion]:
+    if not event_id:
         return []
     return (
         db.query(RubricCriterion)
-        .filter(RubricCriterion.event_id == event.id)
+        .filter(RubricCriterion.event_id == event_id)
         .order_by(RubricCriterion.name.asc())
         .all()
     )
+
+
+class RubricCache:
+    """Rubrics keyed by event so projects from different events score correctly."""
+
+    def __init__(self, db: Session):
+        self.db = db
+        self._cache: dict[str, list[RubricCriterion]] = {}
+
+    def for_project(self, project: Project) -> list[RubricCriterion]:
+        event_id = project.team.event_id if project.team else None
+        if event_id not in self._cache:
+            self._cache[event_id] = rubric_for_event(self.db, event_id)
+        return self._cache[event_id]
 
 
 def resolve_project(db: Session, project_id: str) -> Project | None:
@@ -48,9 +62,21 @@ def serialize_score(score: Score, rubric: list[RubricCriterion]) -> dict:
 
 
 @router.get("/api/judge/rubric")
-def judge_rubric(request: Request, db: Session = Depends(get_db)):
-    require_role(db, request, [Role.JUDGE])
-    rubric = get_event_rubric(db)
+def judge_rubric(request: Request, event: str | None = None, db: Session = Depends(get_db)):
+    user = require_role(db, request, [Role.JUDGE])
+    if event:
+        event_id = resolve_event(db, event).id
+    else:
+        first = (
+            db.query(Team.event_id)
+            .join(Project, Project.team_id == Team.id)
+            .join(JudgeAssignment, JudgeAssignment.project_id == Project.id)
+            .filter(JudgeAssignment.judge_id == user.id)
+            .first()
+        )
+        fallback = default_event(db)
+        event_id = first[0] if first else (fallback.id if fallback else None)
+    rubric = rubric_for_event(db, event_id)
     return [
         {"name": item.name, "weight": item.weight}
         for item in rubric
@@ -60,11 +86,14 @@ def judge_rubric(request: Request, db: Session = Depends(get_db)):
 @router.get("/api/judge/assignments")
 def judge_assignments(request: Request, db: Session = Depends(get_db)):
     user = require_role(db, request, [Role.JUDGE])
-    rubric = get_event_rubric(db)
+    rubrics = RubricCache(db)
 
     assignments = (
         db.query(JudgeAssignment)
-        .options(joinedload(JudgeAssignment.project).joinedload(Project.track))
+        .options(
+            joinedload(JudgeAssignment.project).joinedload(Project.track),
+            joinedload(JudgeAssignment.project).joinedload(Project.team),
+        )
         .filter(JudgeAssignment.judge_id == user.id)
         .all()
     )
@@ -88,7 +117,7 @@ def judge_assignments(request: Request, db: Session = Depends(get_db)):
             criteria = score.criteria or {}
             entry["criteria"] = criteria
             entry["comment"] = score.comment
-            entry["weightedTotal"] = weighted_total(criteria, rubric)
+            entry["weightedTotal"] = weighted_total(criteria, rubrics.for_project(assignment.project))
         result.append(entry)
 
     return result
@@ -111,15 +140,15 @@ def judge_scores(
             raise HTTPException(status_code=403, detail="Cannot view another judge's scores")
         target_judge_id = target.id
 
-    rubric = get_event_rubric(db)
+    rubrics = RubricCache(db)
     scores = (
         db.query(Score)
-        .options(joinedload(Score.project))
+        .options(joinedload(Score.project).joinedload(Project.team))
         .filter(Score.judge_id == target_judge_id)
         .all()
     )
 
-    return [serialize_score(score, rubric) for score in scores]
+    return [serialize_score(score, rubrics.for_project(score.project)) for score in scores]
 
 
 @router.post("/api/judge/scores")
@@ -144,7 +173,7 @@ def submit_score(
     if not assignment:
         raise HTTPException(status_code=403, detail="Not assigned to this project")
 
-    rubric = get_event_rubric(db)
+    rubric = rubric_for_event(db, project.team.event_id)
     try:
         validate_criteria(body.criteria, rubric)
     except ValueError as exc:

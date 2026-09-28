@@ -1,47 +1,62 @@
+import csv
+import io
+
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import require_role
 from app.database import get_db
-from app.models import Project, Role, Score
+from app.models import Project, Role, RubricCriterion, Score, Team
+from app.services.events import resolve_event
 
 router = APIRouter()
 
 
-def csv_escape(value: str) -> str:
-    if any(char in value for char in [",", '"', "\n"]):
-        return f'"{value.replace(chr(34), chr(34) * 2)}"'
-    return value
-
-
 @router.get("/api/export.csv")
-def export_csv(request: Request, db: Session = Depends(get_db)):
+def export_csv(request: Request, event: str | None = None, db: Session = Depends(get_db)):
+    """All judge scores, one row per (judge, project). Criteria columns follow the
+    event rubric, plus any extra criteria present in the scores themselves."""
     require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
 
-    scores = (
-        db.query(Score)
-        .options(joinedload(Score.project).joinedload(Project.track), joinedload(Score.judge))
-        .all()
+    query = db.query(Score).options(
+        joinedload(Score.project).joinedload(Project.track),
+        joinedload(Score.project).joinedload(Project.team),
+        joinedload(Score.judge),
     )
+    rubric_names: list[str] = []
+    if event:
+        target = resolve_event(db, event)
+        query = query.join(Score.project).join(Project.team).filter(Team.event_id == target.id)
+        rubric_names = [
+            row.name
+            for row in db.query(RubricCriterion)
+            .filter(RubricCriterion.event_id == target.id)
+            .order_by(RubricCriterion.name.asc())
+        ]
+    scores = query.all()
 
-    header = "project_id,title,track,judge,functionality,quality,innovation,comment"
-    rows = []
-    for score in scores:
+    extra = sorted({name for score in scores for name in (score.criteria or {})} - set(rubric_names))
+    criteria_columns = rubric_names + extra
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["project_id", "title", "track", "judge", *criteria_columns, "comment"])
+    for score in sorted(scores, key=lambda s: (s.project.fixture_id or "", s.judge.fixture_id or "")):
         criteria = score.criteria or {}
-        rows.append(
-            ",".join(
-                [
-                    score.project.fixture_id or score.project_id,
-                    csv_escape(score.project.title),
-                    csv_escape(score.project.track.name),
-                    csv_escape(score.judge.fixture_id or score.judge.email),
-                    str(criteria.get("functionality", "")),
-                    str(criteria.get("quality", "")),
-                    str(criteria.get("innovation", "")),
-                    csv_escape(score.comment),
-                ]
-            )
+        writer.writerow(
+            [
+                score.project.fixture_id or score.project_id,
+                score.project.title,
+                score.project.track.name if score.project.track else "",
+                score.judge.fixture_id or score.judge.email,
+                *[criteria.get(name, "") for name in criteria_columns],
+                score.comment,
+            ]
         )
 
-    body = "\n".join([header, *rows])
-    return Response(content=body, media_type="text/csv")
+    filename = f"scores-{event}.csv" if event else "scores.csv"
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )

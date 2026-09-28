@@ -8,6 +8,7 @@ import { CredentialAuthForm } from "@/components/CredentialAuthForm";
 import {
   ROLE_AUTH,
   registerHref,
+  safeRedirect,
   type RoleMode,
 } from "@/lib/role-auth";
 
@@ -28,7 +29,7 @@ export function RoleSignInPanel({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const target = redirectTo || config.defaultRedirect;
+  const target = safeRedirect(redirectTo, config.defaultRedirect);
 
   async function demoLogin() {
     setError(null);
@@ -144,7 +145,7 @@ export function RegisterDemoRoles({
       setError(data.detail ?? "Demo login failed");
       return;
     }
-    router.push(redirectTo || config.defaultRedirect);
+    router.push(safeRedirect(redirectTo, config.defaultRedirect));
     router.refresh();
   }
 

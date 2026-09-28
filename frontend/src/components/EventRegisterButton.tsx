@@ -7,100 +7,87 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import {
   fetchMeClient,
   fetchMyRegistrationClient,
+  fetchMyTeamClient,
   registerForEventClient,
   type EventInfo,
+  type TeamSummary,
   type UserInfo,
 } from "@/lib/api";
+import { loginHref, registerHref } from "@/lib/role-auth";
 
+type Participation = { user: UserInfo | null; registered: boolean; team: TeamSummary | null };
+
+async function fetchParticipation(slug: string): Promise<Participation> {
+  const user = await fetchMeClient();
+  if (!user) return { user, registered: false, team: null };
+  const [reg, mine] = await Promise.all([fetchMyRegistrationClient(slug), fetchMyTeamClient(slug)]);
+  return { user, registered: Boolean(reg?.registered), team: mine?.team ?? null };
+}
+
+/**
+ * Registration panel on an event page. Walks a visitor through
+ * sign in → register → team → submit, showing only the next useful step.
+ */
 export function EventRegisterButton({ event }: { event: EventInfo }) {
   const router = useRouter();
+  const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
   const [registered, setRegistered] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [team, setTeam] = useState<TeamSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [user, setUser] = useState<UserInfo | null>(null);
 
-  const registrationOpen =
-    event.state?.registrationOpen ?? event.state?.phase === "REGISTRATION_OPEN";
-  const authed = Boolean(user);
-  const canRegisterRole =
-    !user || user.role === "VISITOR" || user.role === "PARTICIPANT";
+  function apply(data: Participation) {
+    setUser(data.user);
+    setRegistered(data.registered);
+    setTeam(data.team);
+  }
 
   useEffect(() => {
-    Promise.all([fetchMeClient(), fetchMyRegistrationClient()]).then(
-      ([me, reg]) => {
-        setUser(me);
-        setRegistered(Boolean(reg?.registered));
-        setLoading(false);
-      },
-    );
-  }, []);
+    let active = true;
+    fetchParticipation(event.slug).then((data) => {
+      if (active) apply(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [event.slug]);
 
   async function register() {
     setError(null);
-    setMessage(null);
     setSubmitting(true);
-    const result = await registerForEventClient();
+    const result = await registerForEventClient(event.slug);
     setSubmitting(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setRegistered(true);
-    setMessage(
-      result.alreadyRegistered
-        ? "You are already registered for this event."
-        : "You're now a participant! Redirecting to your hub…",
-    );
-    const me = await fetchMeClient();
-    setUser(me);
-    window.setTimeout(() => {
-      router.push("/participant");
-      router.refresh();
-    }, 700);
+    apply(await fetchParticipation(event.slug));
+    router.refresh();
   }
 
-  if (loading) {
-    return <p className="text-sm text-zinc-500">Checking registration...</p>;
+  if (user === undefined) {
+    return <p className="text-sm text-zinc-500">Checking your registration…</p>;
   }
 
-  if (registered || user?.role === "PARTICIPANT") {
-    return (
-      <div className="space-y-3">
-        <Alert tone="success" title="You're in">
-          Registered as a participant. Create a team and submit your project from
-          the hub.
+  const here = `/events/${event.slug}`;
+  const { registrationOpen, teamFormationOpen, submissionsOpen } = event.state;
+
+  if (!user) {
+    if (!registrationOpen) {
+      return (
+        <Alert tone="warning" title="Registration closed">
+          This event isn&apos;t accepting new participants right now.
         </Alert>
-        <ButtonLink href="/participant">Go to participant hub</ButtonLink>
-      </div>
-    );
-  }
-
-  if (!registrationOpen) {
-    return (
-      <Alert tone="warning" title="Registration closed">
-        Registration is not currently open for this event.
-      </Alert>
-    );
-  }
-
-  if (!authed) {
-    const redirect = `/events/${event.slug || event.id}`;
+      );
+    }
     return (
       <div className="space-y-3">
-        <Alert tone="info" title="Registration open">
-          Create an account or sign in, then register for this hackathon to become
-          a participant.
+        <Alert tone="info" title="Registration is open">
+          Create an account or sign in, then register to become a participant.
         </Alert>
         <div className="flex flex-wrap gap-3">
-          <ButtonLink href={`/register?redirect=${encodeURIComponent(redirect)}`}>
-            Create account
-          </ButtonLink>
-          <ButtonLink
-            href={`/login?redirect=${encodeURIComponent(redirect)}`}
-            variant="secondary"
-          >
+          <ButtonLink href={registerHref(here)}>Create account</ButtonLink>
+          <ButtonLink href={loginHref(here)} variant="secondary">
             Sign in
           </ButtonLink>
         </div>
@@ -108,25 +95,73 @@ export function EventRegisterButton({ event }: { event: EventInfo }) {
     );
   }
 
-  if (!canRegisterRole) {
+  if (user.role !== "VISITOR" && user.role !== "PARTICIPANT") {
     return (
-      <Alert tone="warning" title="Wrong role">
-        You&apos;re signed in as {user?.role}. Switch to a Visitor/Participant
-        account or use the Participant demo on the login page.
+      <Alert tone="info" title={`Signed in as ${user.role.toLowerCase()}`}>
+        Staff accounts can&apos;t join events as participants. Use a participant account to
+        register.
+      </Alert>
+    );
+  }
+
+  if (team) {
+    return (
+      <div className="space-y-3">
+        <Alert tone="success" title={`You're on ${team.name}`}>
+          {team.project
+            ? `Your project "${team.project.title}" is ${team.project.status === "SUBMITTED" ? "submitted" : "a draft"}.`
+            : submissionsOpen
+              ? "Next: start your project submission."
+              : "Submissions aren't open yet."}
+        </Alert>
+        <div className="flex flex-wrap gap-3">
+          {submissionsOpen ? (
+            <ButtonLink href={`/projects/new?event=${event.slug}`}>
+              {team.project ? "Edit project" : "Start submission"}
+            </ButtonLink>
+          ) : team.project ? (
+            <ButtonLink href={`/projects/${team.project.id}`}>View project</ButtonLink>
+          ) : null}
+          <ButtonLink href={`/teams/${team.id}`} variant="secondary">
+            Team page
+          </ButtonLink>
+        </div>
+      </div>
+    );
+  }
+
+  if (registered) {
+    return (
+      <div className="space-y-3">
+        <Alert tone="success" title="You're registered">
+          {teamFormationOpen
+            ? "Next: create a team, or open an invite link from a teammate."
+            : "Team formation is closed for this event."}
+        </Alert>
+        {teamFormationOpen ? (
+          <ButtonLink href={`/teams/new?event=${event.slug}`}>Create a team</ButtonLink>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (!registrationOpen) {
+    return (
+      <Alert tone="warning" title="Registration closed">
+        This event isn&apos;t accepting new participants right now.
       </Alert>
     );
   }
 
   return (
     <div className="space-y-3">
-      <Alert tone="success" title="Registration open">
-        One click and you&apos;ll become a participant for this hackathon.
-      </Alert>
-      <Button type="button" onClick={register} disabled={submitting} size="lg">
-        {submitting ? "Registering..." : "Register as participant"}
+      <p className="text-sm text-zinc-600">
+        Registering makes you a participant so you can form a team and submit.
+      </p>
+      <Button type="button" onClick={register} disabled={submitting} size="lg" className="w-full">
+        {submitting ? "Registering…" : "Register for this event"}
       </Button>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert tone="success">{message}</Alert> : null}
     </div>
   );
 }

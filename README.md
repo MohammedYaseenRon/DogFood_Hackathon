@@ -77,6 +77,8 @@ cp frontend/.env.example frontend/.env
 | `FIXTURES_PATH` | backend | Path to `dog_food/fixtures.json` for seeding |
 | `APP_BASE_URL` | backend | Public frontend URL used in team invite links |
 | `BACKEND_URL` | frontend | FastAPI base URL for server-side fetches and rewrites |
+| `SEED_PASSWORD` | backend | Password given to seeded demo accounts (default `dogfood-demo`) |
+| `DEMO_LOGINS` | backend | `1` (default) enables one-click demo role sessions; set `0` in production |
 
 ## Database setup
 
@@ -87,18 +89,31 @@ python -m app.seed      # create tables + load fixtures
 
 Re-run seed any time you need demo users, teams, and sample submissions restored.
 
+The seed creates two events:
+
+| Event | Slug | State |
+|-------|------|-------|
+| Sample Hack 2026 (fixture data) | `sample-hack-2026` | Deadline from `fixtures.json` (past) — judging/completed. Used by the acceptance checker. |
+| Dogfood Open Hack | `dogfood-open-hack` | Open for 30 days from first seed — try the full register → team → submit flow here. Dates are only set on first seed, so organizer edits survive re-seeding. |
+
 ## Authentication
 
-Production-style email/password auth is available:
+Email/password auth with server-side sessions (scrypt hashes, 14-day HttpOnly `session` cookie):
 
-- `POST /api/auth/register` — creates a visitor account and session
-- `POST /api/auth/login` — email/password login
-- `POST /api/auth/logout` — clears session
-- `GET /api/auth/me` — current user
+- `POST /api/auth/register` — creates a **visitor** account and signs in
+- `POST /api/auth/login` / `POST /api/auth/logout` — logout deletes the session row, not just the cookie
+- `GET /api/auth/me`, `PATCH /api/auth/me` — current user / update display name
+- `POST /api/auth/password` — change password (signs out other sessions)
 
-Demo role sessions (for acceptance tests) remain available via `POST /api/auth/session?key=...`.
+Roles: `VISITOR → PARTICIPANT` happens automatically when a user registers for an event, creates a team,
+or accepts a team invite. `JUDGE`, `ORGANIZER` and `ADMIN` are assigned by an admin at `/admin`.
 
-Frontend pages: `/register`, `/login`.
+Seeded demo accounts can sign in by email with `SEED_PASSWORD` (default `dogfood-demo`):
+`admin@dogfood.local`, `organizer@dogfood.local`, `tomas.varga@example.org` (judge A),
+`wei.lindqvist@example.org` (judge B), `priya1@example.org` (participant). The one-click demo roles on
+`/login` use the fixed acceptance-test sessions and are disabled with `DEMO_LOGINS=0`.
+
+Frontend pages: `/register`, `/login`, `/account`.
 
 ## Running tests
 
@@ -112,11 +127,31 @@ pytest
 | Route | Description |
 |-------|-------------|
 | `/events` | Published hackathon listing |
-| `/events/:slug` | Event detail + registration |
-| `/projects` | Public submitted project gallery |
-| `/projects/:id` | Project detail page |
+| `/events/:slug` | Event detail, full timeline, registration and next-step guidance |
+| `/projects` | Public gallery: search, event / track / tech-tag filters, sorting |
+| `/projects/:id` | Project page (video embed, screenshots). Drafts are visible only to the team and staff |
+| `/projects/new?event=:slug` | Create / edit your team's submission (draft → submit → edit until the deadline) |
+| `/teams/new?event=:slug` | Create a team |
+| `/teams/:id` | Team members, roles, leave/remove, invite links |
 | `/join/:token` | Team invite acceptance |
-| `/participant` | Participant dashboard |
-| `/organizer/dashboard` | Organizer operations |
+| `/participant` | Participant hub: every event you're in, with team and project status |
+| `/account` | Profile and password |
+| `/organizer/dashboard` | All events + judging progress per event |
+| `/organizer/event/new` | Create an event (dates, tracks, prizes, custom submission questions) |
+| `/organizer/events/:slug` | Event overview: teams, drafts and submissions |
+| `/organizer/events/:slug/edit` | Edit an event |
 | `/judging` | Judge scoring workspace |
-| `/admin` | Platform admin (users, stats) |
+| `/admin` | Users (roles, suspend), platform stats, audit log |
+
+## Submission and deadline rules (T1)
+
+All calendar checks live in `backend/app/services/event_state.py`, so the API and the UI agree:
+
+- **Registration** is open inside the registration window and never after the submission deadline.
+- **Team formation** (create, join by invite, new invites, member changes) is open from registration until the deadline.
+- **Submissions** (create, edit, submit, un-submit) are open from the event start until the deadline. Every write
+  after the deadline returns `403`; nothing is enforced only in the browser.
+- A team has one project per event. A **draft** needs only a name and track and is hidden from the public.
+  **Submitting** additionally requires a description, a repository URL and every required organizer question.
+- Organizer question answers are visible to the team, organizers and judges, never on the public page.
+- All URLs must be `http(s)://`; up to 8 screenshot URLs and 15 tech tags.

@@ -6,13 +6,13 @@ import { ProjectStrip } from "@/components/home/ProjectStrip";
 import { RoleSection } from "@/components/home/RoleSection";
 import { ShowcaseSections } from "@/components/home/ShowcaseSections";
 import { Testimonials } from "@/components/home/Testimonials";
-import { fetchEvent, fetchProjects, fetchPublicStats } from "@/lib/api";
+import { fetchFeaturedEvent, fetchProjects, fetchPublicStats } from "@/lib/server-api";
 
 export default async function HomePage() {
   const [stats, event, projects] = await Promise.all([
     fetchPublicStats(),
-    fetchEvent(),
-    fetchProjects(),
+    fetchFeaturedEvent(),
+    fetchProjects({ sort: "newest" }),
   ]);
 
   return (

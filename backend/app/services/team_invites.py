@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import app_base_url
 from app.models import Role, Team, TeamInvite, TeamMember, TeamMemberRole, User
+from app.services.event_state import can_form_team
+from app.services.events import ensure_registration, serialize_event_ref
 
 
 def new_invite_token() -> str:
@@ -37,7 +39,10 @@ def serialize_team(team: Team, membership: TeamMember | None = None) -> dict:
         "id": team.id,
         "fixtureId": team.fixture_id,
         "name": team.name,
+        "description": team.description,
         "eventId": team.event_id,
+        "event": serialize_event_ref(team.event) if team.event else None,
+        "maxTeamSize": team.event.max_team_size if team.event else 4,
         "createdBy": team.created_by,
         "createdAt": team.created_at.isoformat() + "Z",
         "updatedAt": team.updated_at.isoformat() + "Z",
@@ -162,7 +167,9 @@ def invite_preview(db: Session, token: str) -> dict:
                 "id": team.id,
                 "name": team.name,
                 "memberCount": len(team.members),
+                "maxTeamSize": team.event.max_team_size if team.event else 4,
             },
+            "event": serialize_event_ref(team.event) if team.event else None,
             "expiresAt": invite.expires_at.isoformat() + "Z",
             "maxUses": invite.max_uses,
             "usedCount": invite.used_count,
@@ -181,7 +188,9 @@ def invite_preview(db: Session, token: str) -> dict:
             "id": team.id,
             "name": team.name,
             "memberCount": len(team.members),
+            "maxTeamSize": team.event.max_team_size if team.event else 4,
         },
+        "event": serialize_event_ref(team.event) if team.event else None,
         "expiresAt": None,
         "maxUses": None,
         "usedCount": None,
@@ -225,6 +234,18 @@ def _join_team_direct(
             "message": "Already a member of this team",
         }
 
+    if user.role not in {Role.VISITOR, Role.PARTICIPANT}:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{user.role.value.title()} accounts cannot join participant teams",
+        )
+
+    if team.event and not can_form_team(team.event):
+        raise HTTPException(
+            status_code=403,
+            detail="Team formation is closed for this event",
+        )
+
     max_size = team.event.max_team_size if team.event else 4
     if len(team.members) >= max_size:
         raise HTTPException(status_code=409, detail="Team has reached maximum size")
@@ -246,6 +267,8 @@ def _join_team_direct(
             role=TeamMemberRole.MEMBER,
         )
     )
+    if team.event:
+        ensure_registration(db, team.event, user)
 
     try:
         if increment_invite:

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { fetchEvents } from "@/lib/api";
+import { fetchEvents } from "@/lib/server-api";
 
 export default async function EventsPage() {
   const events = await fetchEvents();
@@ -29,10 +29,10 @@ export default async function EventsPage() {
               Create account
             </Link>
             <Link
-              href="/login"
+              href="/projects"
               className="rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              Demo roles
+              Browse projects
             </Link>
           </div>
         </div>

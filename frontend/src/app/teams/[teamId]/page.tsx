@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TeamPageContent } from "@/components/TeamPageContent";
 
 type TeamPageProps = {
@@ -8,7 +9,9 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const { teamId } = await params;
   return (
     <main className="min-h-screen bg-zinc-50/80">
-      <TeamPageContent teamId={teamId} />
+      <Suspense fallback={null}>
+        <TeamPageContent teamId={teamId} />
+      </Suspense>
     </main>
   );
 }

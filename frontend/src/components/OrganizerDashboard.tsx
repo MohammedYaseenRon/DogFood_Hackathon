@@ -1,12 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  fetchOrganizerEventsClient,
   fetchOrganizerStatsClient,
+  type OrganizerEvent,
   type OrganizerJudgeProgress,
   type OrganizerStats,
 } from "@/lib/api";
+import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { phaseInfo } from "@/lib/format";
 
 type PaceFilter = "all" | "behind" | "active" | "done";
 type SortKey = "pace" | "name" | "remaining";
@@ -44,7 +49,18 @@ function remainingFor(judge: OrganizerJudgeProgress) {
   return judge.remaining ?? Math.max(judge.assigned - judge.completed, 0);
 }
 
+/** Judging ops default to an event that actually has submissions to judge. */
+function pickDefaultEvent(events: OrganizerEvent[]): string | null {
+  const judging = events.find(
+    (e) =>
+      ["JUDGING", "SUBMISSIONS_CLOSED", "COMPLETED"].includes(e.phase) && e.counts.submitted > 0,
+  );
+  return (judging ?? events[0])?.slug ?? null;
+}
+
 export function OrganizerDashboard() {
+  const [events, setEvents] = useState<OrganizerEvent[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [stats, setStats] = useState<OrganizerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,21 +68,41 @@ export function OrganizerDashboard() {
   const [filter, setFilter] = useState<PaceFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("pace");
 
-  const loadStats = useCallback(async (silent = false) => {
-    if (silent) setRefreshing(true);
-    const next = await fetchOrganizerStatsClient();
-    setStats(next);
-    setRefreshing(false);
-    setLoading(false);
+  useEffect(() => {
+    fetchOrganizerEventsClient().then((list) => {
+      setEvents(list);
+      if (!list || list.length === 0) {
+        setLoading(false);
+        return;
+      }
+      setSelected(pickDefaultEvent(list));
+    });
   }, []);
 
   useEffect(() => {
-    void loadStats();
-    const timer = window.setInterval(() => {
-      void loadStats(true);
-    }, 20000);
-    return () => window.clearInterval(timer);
-  }, [loadStats]);
+    if (!selected) return;
+    let active = true;
+    const load = () =>
+      fetchOrganizerStatsClient(selected).then((next) => {
+        if (!active) return;
+        setStats(next);
+        setRefreshing(false);
+        setLoading(false);
+      });
+    void load();
+    const timer = window.setInterval(() => void load(), 20000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [selected]);
+
+  async function refreshNow() {
+    if (!selected) return;
+    setRefreshing(true);
+    setStats(await fetchOrganizerStatsClient(selected));
+    setRefreshing(false);
+  }
 
   const derived = useMemo(() => {
     if (!stats) return null;
@@ -131,6 +167,22 @@ export function OrganizerDashboard() {
     );
   }
 
+  if (events && events.length === 0) {
+    return (
+      <main className="min-h-screen bg-zinc-50/80 pb-16">
+        <section className="mx-auto max-w-3xl px-6 py-16">
+          <div className="rounded-[24px] border border-zinc-200 bg-white p-8 text-center shadow-sm">
+            <h1 className="font-display text-2xl font-bold text-zinc-950">No events yet</h1>
+            <p className="mt-2 text-sm text-zinc-500">Create your first hackathon to open registration.</p>
+            <ButtonLink href="/organizer/event/new" className="mt-6">
+              Create event
+            </ButtonLink>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (!stats || !derived) {
     return (
       <main className="min-h-screen bg-zinc-50/80 pb-16">
@@ -150,8 +202,10 @@ export function OrganizerDashboard() {
         <section className="mx-auto max-w-3xl px-6 py-12">
           <div className="rounded-[24px] border border-zinc-200 bg-white p-8 shadow-sm">
             <div className="flex flex-wrap gap-3">
-              <ButtonLink href="/login">Sign in as organizer</ButtonLink>
-              <ButtonLink href="/event" variant="secondary">
+              <ButtonLink href="/login?mode=organizer&redirect=/organizer/dashboard">
+                Sign in as organizer
+              </ButtonLink>
+              <ButtonLink href="/events" variant="secondary">
                 View public event
               </ButtonLink>
             </div>
@@ -163,6 +217,7 @@ export function OrganizerDashboard() {
 
   const completion = stats.completionPercent;
   const eventName = stats.event?.name ?? "Hackathon operations";
+  const eventSlug = stats.event?.slug ?? selected ?? "";
   const filters: Array<{ id: PaceFilter; label: string; count: number }> = [
     { id: "all", label: "All judges", count: stats.totalJudges },
     { id: "behind", label: "Behind", count: derived.judgesBehind },
@@ -198,25 +253,46 @@ export function OrganizerDashboard() {
               export results when the room is ready.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/api/export.csv" size="sm">
-              Download CSV
-            </ButtonLink>
-            <ButtonLink href="/organizer/event/edit" variant="secondary" size="sm">
-              Manage event
-            </ButtonLink>
-            <ButtonLink href="/event" variant="secondary" size="sm">
-              Public page
-            </ButtonLink>
-            <ButtonLink href="/projects" variant="secondary" size="sm">
-              Gallery
-            </ButtonLink>
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <label className="flex items-center gap-2 text-sm font-medium text-zinc-600">
+              Event
+              <select
+                value={selected ?? ""}
+                onChange={(e) => {
+                  setSelected(e.target.value);
+                  setRefreshing(true);
+                }}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none focus:border-violet-400"
+              >
+                {(events ?? []).map((event) => (
+                  <option key={event.slug} value={event.slug}>
+                    {event.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/api/export.csv?event=${encodeURIComponent(eventSlug)}`}
+                className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+              >
+                Download CSV
+              </a>
+              <ButtonLink href={`/organizer/events/${eventSlug}`} variant="secondary" size="sm">
+                Manage event
+              </ButtonLink>
+              <ButtonLink href="/organizer/event/new" variant="secondary" size="sm">
+                + New event
+              </ButtonLink>
+            </div>
           </div>
         </div>
       </div>
 
       <section className="page-surface relative mx-auto max-w-7xl px-6 py-8">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <EventsTable events={events ?? []} selected={eventSlug} />
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Scoring complete"
             value={`${completion}%`}
@@ -226,7 +302,7 @@ export function OrganizerDashboard() {
           <MetricCard
             label="Projects in review"
             value={stats.totalProjects}
-            hint="Submitted and fixture projects"
+            hint={`${stats.event?.counts?.submitted ?? 0} submitted · ${stats.event?.counts?.drafts ?? 0} drafts`}
           />
           <MetricCard
             label="Active judges"
@@ -264,7 +340,7 @@ export function OrganizerDashboard() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => void loadStats(true)}
+                  onClick={() => void refreshNow()}
                   disabled={refreshing}
                 >
                   {refreshing ? "Refreshing" : "Refresh now"}
@@ -418,7 +494,7 @@ export function OrganizerDashboard() {
                 </div>
               </dl>
               <ButtonLink
-                href="/organizer/event/edit"
+                href={`/organizer/events/${eventSlug}/edit`}
                 variant="white"
                 className="mt-6 w-full"
               >
@@ -429,6 +505,78 @@ export function OrganizerDashboard() {
         </div>
       </section>
     </main>
+  );
+}
+
+function EventsTable({ events, selected }: { events: OrganizerEvent[]; selected: string }) {
+  return (
+    <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+        <div>
+          <h2 className="font-display text-xl font-bold text-zinc-950">Your events</h2>
+          <p className="mt-1 text-sm text-zinc-500">Every event on this portal, latest deadline first.</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 text-left text-zinc-500">
+            <tr>
+              <th className="px-5 py-3 font-semibold">Event</th>
+              <th className="px-5 py-3 font-semibold">Status</th>
+              <th className="px-5 py-3 font-semibold">Deadline</th>
+              <th className="px-5 py-3 text-right font-semibold">Teams</th>
+              <th className="px-5 py-3 text-right font-semibold">Submitted</th>
+              <th className="px-5 py-3 text-right font-semibold">Drafts</th>
+              <th className="px-5 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((event) => {
+              const phase = phaseInfo(event.phase);
+              return (
+                <tr
+                  key={event.slug}
+                  className={`border-t border-zinc-100 ${event.slug === selected ? "bg-violet-50/50" : ""}`}
+                >
+                  <td className="px-5 py-3">
+                    <Link
+                      href={`/organizer/events/${event.slug}`}
+                      className="font-semibold text-zinc-900 hover:text-violet-700"
+                    >
+                      {event.name}
+                    </Link>
+                    {!event.published ? (
+                      <span className="ml-2">
+                        <Badge tone="warning">Hidden</Badge>
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge tone={phase.tone}>{phase.label}</Badge>
+                  </td>
+                  <td className="px-5 py-3 whitespace-nowrap text-zinc-600">
+                    {formatDeadline(event.submissionsClose)}
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">{event.counts.teams}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{event.counts.submitted}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{event.counts.drafts}</td>
+                  <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Link
+                      href={`/organizer/events/${event.slug}/edit`}
+                      className="text-sm font-semibold text-violet-700 hover:underline"
+                    >
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

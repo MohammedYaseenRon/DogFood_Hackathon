@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { fetchMeClient, type UserInfo } from "@/lib/api";
+import { fetchMeClient, logoutClient, type UserInfo } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
-import { loginHref, type RoleMode } from "@/lib/role-auth";
+import { homeForRole, loginHref, type RoleMode } from "@/lib/role-auth";
 
 const publicLinks = [
   { href: "/projects", label: "Gallery" },
@@ -89,7 +89,7 @@ export function Nav() {
   }, []);
 
   async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    await logoutClient();
     setUser(null);
     setAccountOpen(false);
     router.push("/");
@@ -248,6 +248,22 @@ export function Nav() {
                     </p>
                     <p className="truncate text-xs text-zinc-500">{user.email}</p>
                   </div>
+                  <Link
+                    href={homeForRole(user.role)}
+                    role="menuitem"
+                    onClick={() => setAccountOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    My dashboard
+                  </Link>
+                  <Link
+                    href="/account"
+                    role="menuitem"
+                    onClick={() => setAccountOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Account settings
+                  </Link>
                   {!isParticipant ? (
                     <Link
                       href="/login"

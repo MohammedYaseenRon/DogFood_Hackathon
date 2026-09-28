@@ -5,90 +5,13 @@ const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
 const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
+    // Returned as an array these are "afterFiles" rewrites: Next's own route
+    // handlers (src/app/api/auth/*) win, everything else under /api goes to
+    // the FastAPI backend with cookies intact.
     return [
       {
-        source: "/api/judge/scores",
-        destination: `${backendUrl}/api/judge/scores`,
-      },
-      {
-        source: "/api/judge/assignments",
-        destination: `${backendUrl}/api/judge/assignments`,
-      },
-      {
-        source: "/api/judge/rubric",
-        destination: `${backendUrl}/api/judge/rubric`,
-      },
-      {
-        source: "/api/organizer/rubric",
-        destination: `${backendUrl}/api/organizer/rubric`,
-      },
-      {
-        source: "/api/organizer/stats",
-        destination: `${backendUrl}/api/organizer/stats`,
-      },
-      {
-        source: "/api/export.csv",
-        destination: `${backendUrl}/api/export.csv`,
-      },
-      {
-        source: "/api/invites/:token/join",
-        destination: `${backendUrl}/api/invites/:token/join`,
-      },
-      {
-        source: "/api/invites/:token",
-        destination: `${backendUrl}/api/invites/:token`,
-      },
-      {
-        source: "/api/teams/:teamId/invites",
-        destination: `${backendUrl}/api/teams/:teamId/invites`,
-      },
-      {
-        source: "/api/teams/:teamId/members",
-        destination: `${backendUrl}/api/teams/:teamId/members`,
-      },
-      {
-        source: "/api/teams/:teamId",
-        destination: `${backendUrl}/api/teams/:teamId`,
-      },
-      {
-        source: "/api/teams/join/:token",
-        destination: `${backendUrl}/api/teams/join/:token`,
-      },
-      {
-        source: "/api/teams/mine",
-        destination: `${backendUrl}/api/teams/mine`,
-      },
-      {
-        source: "/api/teams",
-        destination: `${backendUrl}/api/teams`,
-      },
-      {
-        source: "/api/projects/mine",
-        destination: `${backendUrl}/api/projects/mine`,
-      },
-      {
-        source: "/api/projects/:id",
-        destination: `${backendUrl}/api/projects/:id`,
-      },
-      {
-        source: "/api/events",
-        destination: `${backendUrl}/api/events`,
-      },
-      {
-        source: "/api/events/register",
-        destination: `${backendUrl}/api/events/register`,
-      },
-      {
-        source: "/api/events/registration/mine",
-        destination: `${backendUrl}/api/events/registration/mine`,
-      },
-      {
-        source: "/api/events/:slug",
-        destination: `${backendUrl}/api/events/:slug`,
-      },
-      {
-        source: "/api/admin/:path*",
-        destination: `${backendUrl}/api/admin/:path*`,
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

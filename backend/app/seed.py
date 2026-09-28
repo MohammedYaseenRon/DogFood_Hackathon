@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, init_db
 from app.models import (
+    CustomQuestion,
     Event,
     JudgeAssignment,
     Prize,
@@ -24,13 +25,10 @@ from app.models import (
     User,
 )
 
-TEST_SESSIONS = {
-    "organizer": "org_7f2a",
-    "judge_a": "jdg_a_91bc",
-    "judge_b": "jdg_b_44de",
-    "participant": "prt_2e88",
-    "admin": "adm_3c91",
-}
+from app.config import TEST_SESSIONS, seed_password
+from app.services.passwords import hash_password
+
+DEMO_EVENT_SLUG = "dogfood-open-hack"
 
 
 def fixtures_path() -> Path:
@@ -77,6 +75,8 @@ def get_or_create_user(
 
 
 def get_or_create_event(db: Session, fixture: dict) -> Event:
+    """The fixture event. Its deadline comes from fixtures.json (in the past), and
+    the rest of its calendar is derived from it so the phases are coherent."""
     event_data = fixture["event"]
     event = db.query(Event).filter(Event.fixture_id == event_data["id"]).first()
     submissions_close = datetime.fromisoformat(
@@ -84,47 +84,123 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
     ).replace(tzinfo=None)
 
     slug = re.sub(r"[^a-z0-9]+", "-", event_data["name"].lower()).strip("-")
-    now = datetime.utcnow()
-    # Keep fixture submission deadline for acceptance tests; registration window stays open for dev.
-    reg_opens = now - timedelta(days=30)
-    reg_closes = now + timedelta(days=90)
-    event_starts = reg_opens
+    calendar = {
+        "registration_opens": submissions_close - timedelta(days=45),
+        "registration_closes": submissions_close - timedelta(days=3),
+        "event_starts": submissions_close - timedelta(days=3),
+        "event_ends": submissions_close,
+        "judging_starts": submissions_close + timedelta(hours=1),
+        "judging_ends": submissions_close + timedelta(days=14),
+        "results_at": submissions_close + timedelta(days=21),
+    }
 
+    if event is None:
+        event = Event(fixture_id=event_data["id"])
+        db.add(event)
+
+    event.name = event_data["name"]
+    event.slug = slug
+    event.submissions_close = submissions_close
+    event.description = (
+        "The sample hackathon from the DOGFOOD fixture data: 40 teams, 8 tracks and "
+        "30 judges. Submissions are closed, so this event is in its judging phase."
+    )
+    event.short_description = "Fixture event — submissions closed, judging underway."
+    for field, value in calendar.items():
+        setattr(event, field, value)
+    event.max_team_size = 4
+    event.published = True
+    db.flush()
+    return event
+
+
+def get_or_create_demo_event(db: Session, organizer_id: str) -> Event:
+    """An event that is open right now, so registration, teams and submissions
+    can be tried end to end. Dates are set on first seed only; organizer edits
+    survive later re-seeds."""
+    event = db.query(Event).filter(Event.slug == DEMO_EVENT_SLUG).first()
     if event:
-        event.name = event_data["name"]
-        event.submissions_close = submissions_close
-        event.slug = slug
-        event.description = "A sample hackathon loaded from fixture data for development and acceptance testing."
-        event.short_description = "Build, submit, and get judged."
-        event.registration_opens = reg_opens
-        event.registration_closes = reg_closes
-        event.event_starts = event_starts
-        event.judging_starts = submissions_close
-        event.judging_ends = submissions_close + timedelta(days=14)
-        event.results_at = submissions_close + timedelta(days=21)
-        event.max_team_size = 4
-        event.published = True
         return event
 
+    now = datetime.utcnow().replace(second=0, microsecond=0)
     event = Event(
-        fixture_id=event_data["id"],
-        slug=slug,
-        name=event_data["name"],
-        description="A sample hackathon loaded from fixture data for development and acceptance testing.",
-        short_description="Build, submit, and get judged.",
-        submissions_close=submissions_close,
-        registration_opens=reg_opens,
-        registration_closes=reg_closes,
-        event_starts=event_starts,
-        judging_starts=submissions_close,
-        judging_ends=submissions_close + timedelta(days=14),
-        results_at=submissions_close + timedelta(days=21),
+        fixture_id="evt_demo",
+        slug=DEMO_EVENT_SLUG,
+        name="Dogfood Open Hack",
+        short_description="Open now — register, form a team and submit before the deadline.",
+        description=(
+            "A live demo event for trying the full participant flow: register, create "
+            "a team, invite teammates with a link, save a draft and submit before the "
+            "deadline. Organizers can change any of these dates from the event settings."
+        ),
+        registration_opens=now - timedelta(days=7),
+        registration_closes=now + timedelta(days=28),
+        event_starts=now - timedelta(days=1),
+        event_ends=now + timedelta(days=30),
+        submissions_close=now + timedelta(days=30),
+        judging_starts=now + timedelta(days=30, hours=1),
+        judging_ends=now + timedelta(days=40),
+        results_at=now + timedelta(days=45),
         max_team_size=4,
         published=True,
+        created_by=organizer_id,
     )
     db.add(event)
     db.flush()
+
+    tracks = []
+    for index, (name, description) in enumerate(
+        [
+            ("Developer tools", "Make building software faster or safer."),
+            ("Accessibility", "Tools that make the web usable by everyone."),
+            ("Open data", "Put public datasets to work."),
+        ]
+    ):
+        track = Track(
+            fixture_id=f"trk_demo_{index + 1}",
+            name=name,
+            description=description,
+            display_order=index,
+            event_id=event.id,
+        )
+        db.add(track)
+        tracks.append(track)
+    db.flush()
+
+    db.add_all(
+        [
+            Prize(event_id=event.id, name="Grand prize", amount="$1,000", rank=1),
+            Prize(event_id=event.id, name="Best accessibility hack", amount="$250", rank=2, track_id=tracks[1].id),
+        ]
+    )
+    for name in ("functionality", "quality", "innovation"):
+        db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
+    db.add_all(
+        [
+            CustomQuestion(
+                event_id=event.id,
+                label="What did you build during the event (vs. before it)?",
+                question_type="textarea",
+                required=True,
+                display_order=0,
+            ),
+            CustomQuestion(
+                event_id=event.id,
+                label="Primary platform",
+                question_type="select",
+                required=False,
+                options=["Web", "Mobile", "CLI", "Other"],
+                display_order=1,
+            ),
+        ]
+    )
+    db.flush()
     return event
+
+
+def ensure_demo_password(user: User) -> None:
+    if not user.password_hash:
+        user.password_hash = hash_password(seed_password())
 
 
 def seed() -> None:
@@ -338,6 +414,12 @@ def seed() -> None:
         if not judge_a or not judge_b or not first_participant_id:
             raise RuntimeError("Failed to resolve seeded test users")
 
+        get_or_create_demo_event(db, organizer.id)
+
+        demo_accounts = [admin, organizer, db.get(User, judge_a), db.get(User, judge_b), db.get(User, first_participant_id)]
+        for account in demo_accounts:
+            ensure_demo_password(account)
+
         upsert_session(db, TEST_SESSIONS["organizer"], organizer.id)
         upsert_session(db, TEST_SESSIONS["judge_a"], judge_a)
         upsert_session(db, TEST_SESSIONS["judge_b"], judge_b)
@@ -352,6 +434,9 @@ def seed() -> None:
         print(f"  judge_b      Cookie: session={TEST_SESSIONS['judge_b']}")
         print(f"  participant  Cookie: session={TEST_SESSIONS['participant']}")
         print(f"  admin        Cookie: session={TEST_SESSIONS['admin']}")
+        print("email logins (password from SEED_PASSWORD, default 'dogfood-demo'):")
+        for account in demo_accounts:
+            print(f"  {account.role.value.lower():<12} {account.email}")
     finally:
         db.close()
 

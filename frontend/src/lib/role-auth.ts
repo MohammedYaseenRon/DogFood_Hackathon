@@ -93,3 +93,41 @@ export function registerHref(redirect?: string, mode?: RoleMode) {
   const qs = params.toString();
   return qs ? `/register?${qs}` : "/register";
 }
+
+/**
+ * Only allow same-site relative paths as post-login destinations, so a crafted
+ * `?redirect=https://evil.example` link can't bounce users off-site.
+ */
+export function safeRedirect(target?: string | null, fallback = "/"): string {
+  if (!target || !target.startsWith("/") || target.startsWith("//") || target.startsWith("/\\")) {
+    return fallback;
+  }
+  return target;
+}
+
+/** Where each role lands after signing in when no redirect was requested. */
+export function homeForRole(role?: string | null): string {
+  switch (role) {
+    case "PARTICIPANT":
+      return "/participant";
+    case "ORGANIZER":
+      return "/organizer/dashboard";
+    case "ADMIN":
+      return "/admin";
+    case "JUDGE":
+      return "/judging";
+    default:
+      return "/events";
+  }
+}
+
+/** Roles allowed to open each protected area, used to avoid redirect dead-ends. */
+export function canAccess(path: string, role?: string | null): boolean {
+  if (path.startsWith("/participant") || path.startsWith("/projects/new") || path.startsWith("/teams")) {
+    return role === "PARTICIPANT" || role === "VISITOR";
+  }
+  if (path.startsWith("/organizer")) return role === "ORGANIZER" || role === "ADMIN";
+  if (path.startsWith("/judging")) return role === "JUDGE";
+  if (path.startsWith("/admin")) return role === "ADMIN";
+  return true;
+}

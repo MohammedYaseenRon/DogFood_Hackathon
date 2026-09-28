@@ -1,66 +1,74 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
+  fetchEventsClient,
   fetchMeClient,
-  fetchMyProjectClient,
-  fetchMyRegistrationClient,
-  fetchMyTeamClient,
+  fetchParticipantOverviewClient,
   registerForEventClient,
-  type MyProject,
-  type TeamSummary,
+  type EventInfo,
+  type ParticipantEntry,
   type UserInfo,
 } from "@/lib/api";
+import { formatDateTime, phaseInfo, relativeTime } from "@/lib/format";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ParticipantSignInPanel } from "@/components/ParticipantSignInPanel";
 
-export function ParticipantDashboard({
-  submissionsOpen,
-}: {
-  submissionsOpen: boolean;
-}) {
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [team, setTeam] = useState<TeamSummary | null | undefined>(undefined);
-  const [project, setProject] = useState<MyProject | null | undefined>(undefined);
-  const [registered, setRegistered] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
-  const [joinError, setJoinError] = useState<string | null>(null);
+type HubData = { user: UserInfo | null; entries: ParticipantEntry[]; openEvents: EventInfo[] };
 
-  const reload = useCallback(() => {
-    return Promise.all([
-      fetchMeClient(),
-      fetchMyTeamClient(),
-      fetchMyProjectClient(),
-      fetchMyRegistrationClient(),
-    ]).then(([u, t, p, reg]) => {
-      setUser(u);
-      setTeam(t?.team ?? null);
-      setProject(p?.project ?? null);
-      setRegistered(Boolean(reg?.registered));
-    });
-  }, []);
+async function fetchHub(): Promise<HubData> {
+  const user = await fetchMeClient();
+  if (!user) return { user, entries: [], openEvents: [] };
+  const [overview, events] = await Promise.all([fetchParticipantOverviewClient(), fetchEventsClient()]);
+  const entries = overview ?? [];
+  const joined = new Set(entries.map((entry) => entry.event.slug));
+  return {
+    user,
+    entries,
+    openEvents: events.filter((event) => event.state.registrationOpen && !joined.has(event.slug)),
+  };
+}
 
-  useEffect(() => {
-    reload().finally(() => setLoading(false));
-  }, [reload]);
+export function ParticipantDashboard() {
+  const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
+  const [entries, setEntries] = useState<ParticipantEntry[]>([]);
+  const [openEvents, setOpenEvents] = useState<EventInfo[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function joinEvent() {
-    setJoinError(null);
-    setJoining(true);
-    const result = await registerForEventClient();
-    setJoining(false);
-    if (result.error) {
-      setJoinError(result.error);
-      return;
-    }
-    await reload();
+  function apply(data: HubData) {
+    setUser(data.user);
+    setEntries(data.entries);
+    setOpenEvents(data.openEvents);
   }
 
-  if (loading) {
+  useEffect(() => {
+    let active = true;
+    fetchHub().then((data) => {
+      if (active) apply(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function register(slug: string) {
+    setError(null);
+    setBusy(slug);
+    const result = await registerForEventClient(slug);
+    setBusy(null);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    apply(await fetchHub());
+  }
+
+  if (user === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
@@ -72,11 +80,9 @@ export function ParticipantDashboard({
     return (
       <Card variant="elevated" className="mx-auto max-w-lg p-6 sm:p-8">
         <div className="mb-6 text-center">
-          <h2 className="font-display text-xl font-bold text-zinc-900">
-            Participant access required
-          </h2>
+          <h2 className="font-display text-xl font-bold text-zinc-900">Sign in to see your hackathons</h2>
           <p className="mt-2 text-sm text-zinc-500">
-            Sign in with your account or use the demo participant below.
+            Use your account, or the demo participant below.
           </p>
         </div>
         <ParticipantSignInPanel embedded redirectTo="/participant" />
@@ -84,235 +90,200 @@ export function ParticipantDashboard({
     );
   }
 
-  // Logged in but not yet a participant — guide to event registration
-  if (user.role !== "PARTICIPANT") {
+  if (user.role !== "PARTICIPANT" && user.role !== "VISITOR") {
     return (
-      <div className="space-y-6">
-        <Card variant="elevated" className="overflow-hidden p-0">
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-100">
-              Almost there
-            </p>
-            <h2 className="font-display mt-1 text-2xl font-bold">
-              You&apos;re signed in as {user.role}
-            </h2>
-            <p className="mt-2 text-sm text-amber-50">
-              Register for a hackathon to unlock teams, invites, and project
-              submissions.
-            </p>
-          </div>
-          <div className="space-y-4 p-6">
-            <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-              Signed in as{" "}
-              <span className="font-semibold text-zinc-900">
-                {user.name || user.email}
-              </span>
-            </div>
-
-            {user.role === "VISITOR" ? (
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={joinEvent} disabled={joining}>
-                  {joining ? "Registering..." : "Register for Sample Hack 2026"}
-                </Button>
-                <ButtonLink href="/events" variant="secondary">
-                  Browse all events
-                </ButtonLink>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                <ButtonLink href="/events">Browse events</ButtonLink>
-                <ButtonLink href="/login" variant="secondary">
-                  Switch to Participant demo
-                </ButtonLink>
-              </div>
-            )}
-
-            {joinError ? <Alert tone="error">{joinError}</Alert> : null}
-
-            <p className="text-xs text-zinc-400">
-              Prefer a demo account?{" "}
-              <a href="/login" className="font-semibold text-violet-600">
-                Switch role → Participant
-              </a>
-            </p>
-          </div>
-        </Card>
-      </div>
+      <Alert tone="info" title={`You're signed in as ${user.role.toLowerCase()}`}>
+        The participant hub is for hackers. Staff accounts can&apos;t register for events —{" "}
+        <Link href="/login?mode=participant&redirect=/participant" className="font-semibold underline">
+          switch to a participant account
+        </Link>
+        .
+      </Alert>
     );
   }
 
-  const hasTeam = team !== null && team !== undefined;
-  const hasProject = project !== null && project !== undefined;
+  return (
+    <div className="space-y-10">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">Signed in as</p>
+          <p className="font-display mt-1 text-xl font-bold text-zinc-950">{user.name ?? user.email}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone="warning">{user.role}</Badge>
+          <ButtonLink href="/account" variant="secondary" size="sm">
+            Account
+          </ButtonLink>
+        </div>
+      </div>
+
+      {error ? <Alert tone="error">{error}</Alert> : null}
+
+      <section>
+        <h2 className="font-display text-xl font-bold text-zinc-900">Your hackathons</h2>
+        {entries.length === 0 ? (
+          <Card className="mt-4">
+            <p className="text-sm text-zinc-600">
+              You haven&apos;t joined an event yet. Register for one below, or open a team invite link
+              from a teammate.
+            </p>
+          </Card>
+        ) : (
+          <div className="mt-4 space-y-5">
+            {entries.map((entry) => (
+              <EventProgress key={entry.event.slug} entry={entry} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-bold text-zinc-900">Open for registration</h2>
+            <p className="mt-1 text-sm text-zinc-500">Events you can still join.</p>
+          </div>
+          <ButtonLink href="/events" variant="ghost" size="sm">
+            All events →
+          </ButtonLink>
+        </div>
+        {openEvents.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">No other events are open right now.</p>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {openEvents.map((event) => (
+              <Card key={event.slug}>
+                <Link href={`/events/${event.slug}`} className="font-display text-lg font-bold text-zinc-900 hover:text-violet-700">
+                  {event.name}
+                </Link>
+                {event.shortDescription ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-500">{event.shortDescription}</p>
+                ) : null}
+                <p className="mt-3 text-xs text-zinc-500">
+                  Submissions close {formatDateTime(event.submissionsClose)}
+                </p>
+                <Button
+                  className="mt-4"
+                  size="sm"
+                  disabled={busy !== null}
+                  onClick={() => void register(event.slug)}
+                >
+                  {busy === event.slug ? "Registering…" : "Register"}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function EventProgress({ entry }: { entry: ParticipantEntry }) {
+  const { event, team, project } = entry;
+  const phase = phaseInfo(event.phase);
   const steps = [
-    { step: 1, title: "Signed in", description: "You're a participant.", done: true },
-    {
-      step: 2,
-      title: "Join a team",
-      description: "Create a team or join via invite link.",
-      done: hasTeam,
-    },
-    {
-      step: 3,
-      title: "Submit project",
-      description: "Fill in project details and submit.",
-      done: hasProject && project?.status === "SUBMITTED",
-    },
-    {
-      step: 4,
-      title: "Edit until deadline",
-      description: "Update your draft anytime before close.",
-      done: hasProject,
-    },
+    { label: "Registered", done: entry.registered },
+    { label: "On a team", done: Boolean(team) },
+    { label: "Project started", done: Boolean(project) },
+    { label: "Submitted", done: project?.status === "SUBMITTED" },
   ];
 
   return (
-    <div className="space-y-8">
-      {!registered ? (
-        <Alert tone="info" title="Tip">
-          You have participant access. Create a team and submit when ready.
-        </Alert>
-      ) : null}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
-            Signed in as
-          </p>
-          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
-            {user.name ?? user.email}
-          </p>
-          <span className="mt-2 inline-block">
-            <Badge tone="warning">PARTICIPANT</Badge>
-          </span>
-        </div>
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
-            Team status
-          </p>
-          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
-            {hasTeam ? team?.name : "No team yet"}
-          </p>
+    <Card variant="elevated" className="p-0">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-100 p-5">
+        <div>
+          <Link href={`/events/${event.slug}`} className="font-display text-lg font-bold text-zinc-900 hover:text-violet-700">
+            {event.name}
+          </Link>
           <p className="mt-1 text-sm text-zinc-500">
-            {hasTeam ? "Ready to collaborate" : "Create or join a team"}
+            Deadline {formatDateTime(event.submissionsClose)}
+            {event.submissionsOpen ? ` · ${relativeTime(event.submissionsClose)}` : ""}
           </p>
         </div>
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-1">
-          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
-            Project
-          </p>
-          <p className="font-display mt-2 text-xl font-bold text-zinc-950">
-            {hasProject ? project?.title : "Not submitted"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            {hasProject ? project?.status : "Start your submission"}
-          </p>
-        </div>
+        <Badge tone={phase.tone}>{phase.label}</Badge>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <ButtonLink href="/projects/new">Submit project</ButtonLink>
-        <ButtonLink href="/projects" variant="secondary">
-          View gallery
-        </ButtonLink>
-        {hasTeam && team ? (
-          <ButtonLink href={`/teams/${team.id}`} variant="secondary">
-            Open team
-          </ButtonLink>
-        ) : (
-          <ButtonLink href="/teams/new" variant="secondary">
-            Create team
-          </ButtonLink>
-        )}
-      </div>
-
-      <Alert tone={submissionsOpen ? "success" : "warning"}>
-        {submissionsOpen
-          ? "Submissions are open. Save drafts or submit before the deadline."
-          : "Submissions are closed. No new submissions or edits are allowed."}
-      </Alert>
-
-      <div>
-        <h3 className="font-display text-lg font-bold text-zinc-900">
-          Your journey
-        </h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((item) => (
-            <Card
-              key={item.step}
-              className={item.done ? "border-emerald-200 bg-emerald-50/50" : ""}
+      <ol className="grid grid-cols-2 gap-2 p-5 sm:grid-cols-4">
+        {steps.map((step, index) => (
+          <li
+            key={step.label}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
+              step.done ? "bg-emerald-50 text-emerald-800" : "bg-zinc-50 text-zinc-500"
+            }`}
+          >
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                step.done ? "bg-emerald-500 text-white" : "bg-zinc-200 text-zinc-600"
+              }`}
             >
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                  item.done
-                    ? "bg-emerald-500 text-white"
-                    : "bg-zinc-100 text-zinc-500"
-                }`}
-              >
-                {item.done ? "✓" : item.step}
+              {step.done ? "✓" : index + 1}
+            </span>
+            {step.label}
+          </li>
+        ))}
+      </ol>
+
+      <div className="grid gap-4 border-t border-zinc-100 p-5 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.14em] text-zinc-400 uppercase">Team</p>
+          {team ? (
+            <>
+              <p className="mt-1 font-semibold text-zinc-900">{team.name}</p>
+              <p className="text-sm text-zinc-500">
+                {team.memberCount}/{team.maxTeamSize} members · you are {team.myRole.toLowerCase()}
+              </p>
+              <ButtonLink href={`/teams/${team.id}`} variant="secondary" size="sm" className="mt-3">
+                {team.myRole === "MEMBER" ? "Open team" : "Manage team & invites"}
+              </ButtonLink>
+            </>
+          ) : event.teamFormationOpen ? (
+            <>
+              <p className="mt-1 text-sm text-zinc-600">Create a team, or open an invite link from a teammate.</p>
+              <ButtonLink href={`/teams/new?event=${event.slug}`} size="sm" className="mt-3">
+                Create team
+              </ButtonLink>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-zinc-500">Team formation is closed.</p>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold tracking-[0.14em] text-zinc-400 uppercase">Project</p>
+          {project ? (
+            <>
+              <p className="mt-1 font-semibold text-zinc-900">{project.title || "Untitled project"}</p>
+              <p className="text-sm text-zinc-500">
+                {project.status === "SUBMITTED"
+                  ? `Submitted ${formatDateTime(project.submittedAt)}`
+                  : "Draft — not visible in the gallery yet"}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {event.submissionsOpen ? (
+                  <ButtonLink href={`/projects/new?event=${event.slug}`} size="sm">
+                    Edit project
+                  </ButtonLink>
+                ) : null}
+                <ButtonLink href={`/projects/${project.id}`} variant="secondary" size="sm">
+                  View
+                </ButtonLink>
               </div>
-              <h4 className="mt-3 font-semibold text-zinc-900">{item.title}</h4>
-              <p className="mt-1 text-sm text-zinc-500">{item.description}</p>
-            </Card>
-          ))}
+            </>
+          ) : team && event.submissionsOpen ? (
+            <>
+              <p className="mt-1 text-sm text-zinc-600">No project yet. Start a draft — you can edit until the deadline.</p>
+              <ButtonLink href={`/projects/new?event=${event.slug}`} size="sm" className="mt-3">
+                Start submission
+              </ButtonLink>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-zinc-500">
+              {event.submissionsOpen ? "Join a team first." : "Submissions are closed."}
+            </p>
+          )}
         </div>
       </div>
-
-      <Card>
-        <h3 className="font-display text-lg font-bold text-zinc-900">
-          Your team
-        </h3>
-        {hasTeam && team ? (
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3">
-              <div>
-                <p className="font-semibold text-zinc-900">{team.name}</p>
-                <p className="mt-0.5 text-xs text-zinc-400">
-                  Role: {team.myRole ?? "MEMBER"}
-                </p>
-              </div>
-              <Badge tone="success">Joined</Badge>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <ButtonLink href={`/teams/${team.id}`}>Open team page</ButtonLink>
-              {(team.myRole === "OWNER" || team.myRole === "ADMIN") && (
-                <ButtonLink href={`/teams/${team.id}`} variant="secondary">
-                  Invite members
-                </ButtonLink>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-4">
-            <p className="text-sm text-zinc-500">
-              Create a new team or join an existing one with an invite link.
-            </p>
-            <ButtonLink href="/teams/new">Create team</ButtonLink>
-          </div>
-        )}
-      </Card>
-
-      {hasProject && project ? (
-        <Card>
-          <h3 className="font-display text-lg font-bold text-zinc-900">
-            Your project
-          </h3>
-          <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold text-zinc-900">{project.title}</p>
-              <p className="mt-1 text-sm text-zinc-500">{project.summary}</p>
-              <p className="mt-2 text-xs text-zinc-400">
-                Track: {project.trackName} · Team: {project.teamName}
-              </p>
-            </div>
-            <Badge tone={project.status === "SUBMITTED" ? "success" : "warning"}>
-              {project.status}
-            </Badge>
-          </div>
-          <ButtonLink href="/projects/new" variant="secondary" className="mt-4">
-            Edit project
-          </ButtonLink>
-        </Card>
-      ) : null}
-    </div>
+    </Card>
   );
 }

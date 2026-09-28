@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
-import { fetchProjectDetail } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { projectThumbnail, videoEmbedUrl } from "@/lib/galleryUtils";
+import { fetchProjectDetail } from "@/lib/server-api";
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
@@ -18,67 +21,120 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
     notFound();
   }
 
+  const isDraft = project.status === "DRAFT";
+  const embed = videoEmbedUrl(project.videoUrl ?? project.demoUrl);
+  const thumb = projectThumbnail(project);
   const links = [
     { href: project.liveUrl, label: "Live demo" },
-    { href: project.repoUrl, label: "Repository" },
-    { href: project.videoUrl ?? project.demoUrl, label: "Watch demo" },
-  ].filter((link) => Boolean(link.href));
+    { href: project.repoUrl, label: "Source code" },
+    { href: embed ? null : (project.videoUrl ?? project.demoUrl), label: "Watch demo video" },
+  ].filter((link): link is { href: string; label: string } => Boolean(link.href));
+  const answered = (project.questions ?? []).filter((q) => q.answer);
 
   return (
     <PageShell
       tone="violet"
-      eyebrow={project.trackName}
-      title={project.title}
-      description={project.tagline || project.summary}
-      badge={<Badge tone="success">Submitted</Badge>}
+      eyebrow={[project.event?.name, project.trackName].filter(Boolean).join(" · ")}
+      title={project.title || "Untitled project"}
+      description={project.tagline ?? undefined}
+      badge={
+        <Badge tone={isDraft ? "warning" : "success"}>{isDraft ? "Draft" : "Submitted"}</Badge>
+      }
       action={
-        <ButtonLink href="/projects" variant="secondary" size="sm">
-          Back to gallery
-        </ButtonLink>
+        <>
+          {project.canEdit && project.event ? (
+            <ButtonLink href={`/projects/new?event=${project.event.slug}`} size="sm">
+              Edit project
+            </ButtonLink>
+          ) : null}
+          <ButtonLink
+            href={project.event ? `/projects?event=${project.event.slug}` : "/projects"}
+            variant="secondary"
+            size="sm"
+          >
+            Back to gallery
+          </ButtonLink>
+        </>
       }
     >
+      {isDraft ? (
+        <div className="mb-8">
+          <Alert tone="warning" title="This is a draft">
+            Only your team and event staff can see this page. Submit it before{" "}
+            {formatDateTime(project.event?.submissionsClose)} to appear in the gallery.
+          </Alert>
+        </div>
+      ) : null}
+
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card variant="elevated" className="overflow-hidden p-0">
-            <div className="aspect-[16/9] bg-gradient-to-br from-violet-500 to-indigo-600">
-              {project.thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={project.thumbnailUrl}
-                  alt={project.title}
-                  className="h-full w-full object-cover"
+            {embed ? (
+              <div className="aspect-video bg-black">
+                <iframe
+                  src={embed}
+                  title={`${project.title} demo video`}
+                  className="h-full w-full"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
-              ) : (
-                <div className="flex h-full items-center justify-center text-6xl text-white/90">
-                  🚀
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className={`aspect-[16/9] bg-gradient-to-br ${thumb.gradient}`}>
+                {project.thumbnailUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={project.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-8 text-center">
+                    <span className="font-display text-4xl font-bold text-white/95 drop-shadow">
+                      {project.title}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="p-6">
-              <h2 className="font-display text-xl font-bold text-zinc-900">
-                About this project
-              </h2>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
-                {project.summary}
-              </p>
+              <h2 className="font-display text-xl font-bold text-zinc-900">About this project</h2>
+              {project.summary ? (
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+                  {project.summary}
+                </p>
+              ) : (
+                <p className="mt-4 text-sm text-zinc-400">No description yet.</p>
+              )}
             </div>
           </Card>
 
-          {(project.techTags ?? []).length > 0 ? (
+          {project.imageUrls.length > 0 ? (
             <Card>
-              <h2 className="font-display text-lg font-bold text-zinc-900">
-                Technologies
-              </h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(project.techTags ?? []).map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700"
-                  >
-                    {tag}
-                  </span>
+              <h2 className="font-display text-lg font-bold text-zinc-900">Gallery</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {project.imageUrls.map((url, index) => (
+                  <li key={url}>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-zinc-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`${project.title} screenshot ${index + 1}`} loading="lazy" className="aspect-[16/10] w-full object-cover transition hover:scale-[1.02]" />
+                    </a>
+                  </li>
                 ))}
-              </div>
+              </ul>
+            </Card>
+          ) : null}
+
+          {answered.length > 0 ? (
+            <Card>
+              <h2 className="font-display text-lg font-bold text-zinc-900">Organizer questions</h2>
+              <p className="mt-1 text-xs text-zinc-400">Visible to the team, organizers and judges only.</p>
+              <dl className="mt-4 space-y-4">
+                {answered.map((question) => (
+                  <div key={question.id}>
+                    <dt className="text-sm font-semibold text-zinc-800">{question.label}</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{question.answer}</dd>
+                  </div>
+                ))}
+              </dl>
             </Card>
           ) : null}
         </div>
@@ -91,12 +147,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                 {links.map((link) => (
                   <a
                     key={link.label}
-                    href={link.href!}
+                    href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-violet-700 hover:to-indigo-700"
                   >
-                    {link.label}
+                    {link.label} ↗
                   </a>
                 ))}
               </div>
@@ -106,17 +162,14 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           <Card>
             <h2 className="font-display text-lg font-bold text-zinc-900">Team</h2>
             <p className="mt-2 text-sm font-semibold text-zinc-700">{project.teamName}</p>
-            <ul className="mt-4 space-y-3">
-              {(project.members ?? []).map((member) => (
-                <li
-                  key={member.email}
-                  className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2.5"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900">{member.name}</p>
-                    <p className="text-xs text-zinc-500">{member.email}</p>
+            <ul className="mt-4 space-y-2">
+              {project.members.map((member, index) => (
+                <li key={`${member.name}-${index}`} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
+                    {member.email ? <p className="truncate text-xs text-zinc-500">{member.email}</p> : null}
                   </div>
-                  <Badge tone="default">{member.role}</Badge>
+                  <Badge tone="default">{member.role.toLowerCase()}</Badge>
                 </li>
               ))}
             </ul>
@@ -124,22 +177,46 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
           <Card>
             <dl className="space-y-3 text-sm">
+              {project.event ? (
+                <div>
+                  <dt className="text-zinc-400">Event</dt>
+                  <dd>
+                    <Link href={`/events/${project.event.slug}`} className="font-semibold text-violet-700 hover:underline">
+                      {project.event.name}
+                    </Link>
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-zinc-400">Track</dt>
-                <dd className="font-semibold text-zinc-900">{project.trackName}</dd>
+                <dd className="font-semibold text-zinc-900">{project.trackName ?? "—"}</dd>
               </div>
+              {project.submittedAt ? (
+                <div>
+                  <dt className="text-zinc-400">Submitted</dt>
+                  <dd className="font-semibold text-zinc-900">{formatDateTime(project.submittedAt)}</dd>
+                </div>
+              ) : null}
+              {project.techTags.length > 0 ? (
+                <div>
+                  <dt className="text-zinc-400">Built with</dt>
+                  <dd className="mt-2 flex flex-wrap gap-2">
+                    {project.techTags.map((tag) => (
+                      <Link
+                        key={tag}
+                        href={`/projects?tag=${encodeURIComponent(tag)}`}
+                        className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+                      >
+                        {tag}
+                      </Link>
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
         </div>
       </div>
-
-      <p className="mt-10 text-center text-sm text-zinc-500">
-        Explore more in the{" "}
-        <Link href="/projects" className="font-semibold text-violet-600 hover:text-violet-800">
-          public gallery
-        </Link>
-        .
-      </p>
     </PageShell>
   );
 }

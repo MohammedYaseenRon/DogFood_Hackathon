@@ -1,33 +1,14 @@
-const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
+/**
+ * Shared API types and browser-side calls. Browser requests go to same-origin
+ * `/api/*`, which next.config.ts rewrites to the FastAPI backend, so the
+ * session cookie travels with them. Server components use `server-api.ts`.
+ */
 
-export type ProjectSummary = {
-  id: string;
-  title: string;
-  tagline?: string | null;
-  summary: string;
-  trackName: string;
-  teamName: string;
-  repoUrl: string;
-  demoUrl?: string | null;
-  liveUrl?: string | null;
-  videoUrl?: string | null;
-  thumbnailUrl?: string | null;
-  techTags?: string[];
-};
+export const backendUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
 
-export type ProjectDetail = ProjectSummary & {
-  teamId?: string;
-  members?: Array<{ name: string; email: string; role: string }>;
-};
-
-export type PrizeInfo = {
-  id: string;
-  name: string;
-  amount: string;
-  rank: number;
-  trackId: string | null;
-  trackName: string | null;
-};
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export type EventPhase =
   | "DRAFT"
@@ -43,65 +24,206 @@ export type EventPhase =
 export type EventState = {
   phase: EventPhase;
   registrationOpen: boolean;
+  teamFormationOpen: boolean;
   submissionsOpen: boolean;
   submissionsClose?: string;
+  serverTime?: string;
+};
+
+/** Compact event reference embedded in teams, projects and dashboards. */
+export type EventRef = {
+  id: string;
+  slug: string;
+  name: string;
+  submissionsClose: string;
+  submissionsOpen: boolean;
+  teamFormationOpen: boolean;
+  phase: EventPhase;
+};
+
+export type PrizeInfo = {
+  id: string;
+  name: string;
+  amount: string;
+  rank: number;
+  trackId: string | null;
+  trackName: string | null;
+};
+
+export type QuestionType = "text" | "textarea" | "url" | "select";
+
+export type CustomQuestion = {
+  id: string;
+  label: string;
+  type: QuestionType;
+  required: boolean;
+  options: string[];
+};
+
+export type EventCounts = {
+  registrations: number;
+  teams: number;
+  submitted: number;
+  drafts: number;
 };
 
 export type EventInfo = {
   id: string;
-  slug?: string;
+  slug: string;
   name: string;
   description?: string | null;
   shortDescription?: string | null;
-  submissionsClose: string;
+  published: boolean;
   registrationOpens?: string | null;
   registrationCloses?: string | null;
-  maxTeamSize?: number;
-  state?: EventState;
+  eventStarts?: string | null;
+  eventEnds?: string | null;
+  submissionsClose: string;
+  judgingStarts?: string | null;
+  judgingEnds?: string | null;
+  resultsAt?: string | null;
+  maxTeamSize: number;
+  state: EventState;
   tracks: Array<{ id: string; name: string; description?: string | null }>;
   prizes: PrizeInfo[];
   rubric: Array<{ name: string; weight: number }>;
+  questions: CustomQuestion[];
+  counts?: EventCounts;
 };
 
-export type MyProject = {
+export type ProjectStatus = "DRAFT" | "SUBMITTED";
+
+export type ProjectSummary = {
   id: string;
   title: string;
   tagline?: string | null;
   summary: string;
-  trackName: string;
-  trackId: string;
+  trackName: string | null;
+  trackId: string | null;
   teamName: string;
-  repoUrl: string;
+  memberCount: number;
+  repoUrl?: string | null;
   demoUrl?: string | null;
   liveUrl?: string | null;
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
-  techTags?: string[];
-  status: "DRAFT" | "SUBMITTED";
+  imageUrls: string[];
+  techTags: string[];
+  status: ProjectStatus;
   submittedAt: string | null;
+  updatedAt?: string | null;
+  event: EventRef | null;
 };
+
+export type ProjectDetail = ProjectSummary & {
+  teamId: string;
+  members: Array<{ name: string; role: string; email?: string }>;
+  canEdit?: boolean;
+  answers?: Record<string, string>;
+  questions?: Array<CustomQuestion & { answer: string | null }>;
+};
+
+export type GalleryFacets = {
+  total: number;
+  tracks: Array<{ id: string; name: string; count: number }>;
+  tags: Array<{ name: string; count: number }>;
+};
+
+export type UserRole = "VISITOR" | "PARTICIPANT" | "JUDGE" | "ORGANIZER" | "ADMIN";
 
 export type UserInfo = {
   id: string;
   email: string;
   name: string | null;
-  role: string;
+  role: UserRole;
   fixtureId: string | null;
 };
 
 export type PublicStats = {
   projectCount: number;
+  eventCount: number;
   trackCount: number;
   judgeCount: number;
   eventName: string;
+  eventSlug: string | null;
   submissionsClose: string | null;
   submissionsOpen: boolean;
 };
 
-export type RubricCriterion = {
+export type TeamSummary = {
+  id: string;
+  fixtureId?: string;
   name: string;
-  weight: number;
+  description?: string | null;
+  eventId?: string;
+  event: EventRef | null;
+  maxTeamSize: number;
+  createdBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  memberCount: number;
+  myRole?: "OWNER" | "ADMIN" | "MEMBER" | null;
+  teamUrl?: string;
+  project?: { id: string; title: string; status: ProjectStatus } | null;
 };
+
+export type TeamMemberInfo = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "ADMIN" | "MEMBER";
+  joinedAt: string;
+};
+
+export type TeamInviteInfo = {
+  id: string;
+  token: string;
+  teamId: string;
+  expiresAt: string;
+  maxUses: number;
+  usedCount: number;
+  revoked: boolean;
+  createdAt: string;
+  inviteUrl: string;
+  remainingUses: number;
+  expired: boolean;
+};
+
+export type InvitePreview = {
+  token: string;
+  type: "invite" | "legacy";
+  team: { id: string; name: string; memberCount: number; maxTeamSize: number };
+  event: EventRef | null;
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number | null;
+  remainingUses: number | null;
+  members: TeamMemberInfo[];
+};
+
+export type ParticipantEntry = {
+  event: EventRef;
+  registered: boolean;
+  registeredAt: string | null;
+  team: {
+    id: string;
+    name: string;
+    myRole: "OWNER" | "ADMIN" | "MEMBER";
+    memberCount: number;
+    maxTeamSize: number;
+  } | null;
+  project: {
+    id: string;
+    title: string;
+    tagline: string | null;
+    status: ProjectStatus;
+    submittedAt: string | null;
+    updatedAt: string | null;
+  } | null;
+};
+
+export type RubricCriterion = { name: string; weight: number };
 
 export type JudgeAssignment = {
   projectId: string;
@@ -148,303 +270,208 @@ export type OrganizerStats = {
   judgesComplete?: number;
   judgesBehind?: number;
   averageJudgePercent?: number;
-  event?: {
-    name: string;
-    submissionsClose: string;
-    submissionsOpen: boolean;
-  } | null;
+  event?: (EventRef & { counts: EventCounts }) | null;
   judgeProgress: OrganizerJudgeProgress[];
 };
 
-async function serverFetch(path: string) {
-  const res = await fetch(`${backendUrl}${path}`, { next: { revalidate: 0 } });
-  if (!res.ok) return null;
-  return res.json();
-}
+export type OrganizerEvent = EventRef & { published: boolean; counts: EventCounts };
 
-async function clientFetch(path: string) {
-  const res = await fetch(path, { credentials: "include" });
-  if (!res.ok) return null;
-  return res.json();
-}
+export type EventSubmissions = {
+  event: EventRef;
+  counts: EventCounts;
+  teams: Array<{
+    teamId: string;
+    teamName: string;
+    members: Array<{ name: string; email: string; role: string }>;
+    project: {
+      id: string;
+      title: string;
+      status: ProjectStatus;
+      trackName: string | null;
+      submittedAt: string | null;
+      updatedAt: string | null;
+    } | null;
+  }>;
+};
 
-async function clientJson<T>(
-  path: string,
-  method: string,
-  body?: unknown,
-): Promise<{ data: T | null; error: string | null }> {
-  const res = await fetch(path, {
-    method,
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const detail =
-      typeof data?.detail === "string"
-        ? data.detail
-        : `Request failed (${res.status})`;
-    return { data: null, error: detail };
+export type AdminStats = {
+  users: number;
+  events: number;
+  projects: number;
+  submitted: number;
+  drafts: number;
+  visitors: number;
+  participants: number;
+  judges: number;
+  organizers: number;
+  admins: number;
+  suspended: number;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  suspended: boolean;
+  hasPassword: boolean;
+  createdAt: string;
+};
+
+export type AuditEntry = {
+  id: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  metadata: string;
+  createdAt: string;
+};
+
+export type ProjectPayload = {
+  event?: string;
+  title?: string;
+  tagline?: string;
+  summary?: string;
+  repo_url?: string;
+  demo_url?: string;
+  live_url?: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  image_urls?: string[];
+  tech_tags?: string[];
+  track_id?: string;
+  status?: ProjectStatus;
+  answers?: Record<string, string>;
+};
+
+export type EventPayload = {
+  name: string;
+  slug?: string;
+  short_description?: string;
+  description?: string;
+  published: boolean;
+  max_team_size: number;
+  registration_opens?: string | null;
+  registration_closes?: string | null;
+  event_starts?: string | null;
+  event_ends?: string | null;
+  submissions_close: string;
+  judging_starts?: string | null;
+  judging_ends?: string | null;
+  results_at?: string | null;
+  tracks: Array<{ id?: string; name: string; description?: string }>;
+  prizes: Array<{ name: string; amount: string; rank: number; track_index?: number }>;
+  questions: Array<{
+    id?: string;
+    label: string;
+    type: QuestionType;
+    required: boolean;
+    options: string[];
+  }>;
+};
+
+export type Result<T> = { data: T | null; error: string | null; status: number };
+
+// ---------------------------------------------------------------------------
+// Transport
+// ---------------------------------------------------------------------------
+
+function errorDetail(data: unknown, status: number): string {
+  const detail = (data as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail[0]?.msg) {
+    const first = detail[0] as { msg: string; loc?: unknown[] };
+    const field = first.loc?.filter((part) => part !== "body").join(".");
+    return field ? `${field}: ${first.msg}` : first.msg;
   }
-  return { data, error: null };
+  if (status === 401) return "Please sign in to continue.";
+  if (status === 403) return "You don't have permission to do that.";
+  return `Request failed (${status})`;
 }
 
-async function clientPost<T>(
+export async function request<T>(
   path: string,
-  body: unknown,
-): Promise<{ data: T | null; error: string | null }> {
-  return clientJson(path, "POST", body);
+  init: { method?: string; body?: unknown } = {},
+): Promise<Result<T>> {
+  try {
+    const res = await fetch(path, {
+      method: init.method ?? "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: init.body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { data: null, error: errorDetail(data, res.status), status: res.status };
+    return { data: data as T, error: null, status: res.status };
+  } catch {
+    return { data: null, error: "Network error — is the server running?", status: 0 };
+  }
 }
 
-async function clientPatch<T>(
-  path: string,
-  body: unknown,
-): Promise<{ data: T | null; error: string | null }> {
-  return clientJson(path, "PATCH", body);
+async function getOrNull<T>(path: string): Promise<T | null> {
+  return (await request<T>(path)).data;
 }
 
-export async function fetchProjects(params?: {
-  q?: string;
-  track?: string;
-}): Promise<ProjectSummary[]> {
+function qs(params: Record<string, string | undefined | null>): string {
   const search = new URLSearchParams();
-  if (params?.q) search.set("q", params.q);
-  if (params?.track) search.set("track", params.track);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) search.set(key, value);
+  }
   const query = search.toString();
-  const data = await serverFetch(`/api/projects${query ? `?${query}` : ""}`);
-  return data ?? [];
+  return query ? `?${query}` : "";
 }
 
-export async function fetchEvent(): Promise<EventInfo | null> {
-  const data = await serverFetch("/api/event");
-  return data?.event ?? null;
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export function fetchMeClient(): Promise<UserInfo | null> {
+  return getOrNull<UserInfo>("/api/auth/me");
 }
 
-export async function fetchEvents(): Promise<EventInfo[]> {
-  const data = await serverFetch("/api/events");
+export function updateProfileClient(name: string) {
+  return request<UserInfo>("/api/auth/me", { method: "PATCH", body: { name } });
+}
+
+export function changePasswordClient(currentPassword: string | null, newPassword: string) {
+  return request<{ ok: boolean }>("/api/auth/password", {
+    method: "POST",
+    body: { current_password: currentPassword, new_password: newPassword },
+  });
+}
+
+export function logoutClient() {
+  return request<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+export async function fetchEventsClient(scope?: "all"): Promise<EventInfo[]> {
+  const data = await getOrNull<{ events: EventInfo[] }>(`/api/events${qs({ scope })}`);
   return data?.events ?? [];
 }
 
-export async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
-  const data = await serverFetch(`/api/events/${slug}`);
+export async function fetchEventClient(slug: string): Promise<EventInfo | null> {
+  const data = await getOrNull<{ event: EventInfo }>(`/api/events/${encodeURIComponent(slug)}`);
   return data?.event ?? null;
 }
 
-export async function fetchProjectDetail(
-  projectId: string,
-): Promise<ProjectDetail | null> {
-  const data = await serverFetch(`/api/projects/${projectId}`);
-  return data?.project ?? null;
-}
-
-export async function fetchPublicStats(): Promise<PublicStats | null> {
-  return serverFetch("/api/stats/public");
-}
-
-export async function fetchMeClient(): Promise<UserInfo | null> {
-  return clientFetch("/api/auth/me");
-}
-
-export async function fetchJudgeAssignmentsClient(): Promise<JudgeAssignment[]> {
-  const data = await clientFetch("/api/judge/assignments");
-  return data ?? [];
-}
-
-export async function fetchJudgeScoresClient(): Promise<JudgeScore[]> {
-  const data = await clientFetch("/api/judge/scores");
-  return data ?? [];
-}
-
-export async function fetchJudgeRubricClient(): Promise<RubricCriterion[]> {
-  const data = await clientFetch("/api/judge/rubric");
-  return data ?? [];
-}
-
-export async function submitJudgeScoreClient(
-  payload: ScoreSubmitPayload,
-): Promise<{ score: JudgeScore | null; error: string | null }> {
-  const result = await clientPost<JudgeScore>("/api/judge/scores", payload);
-  return { score: result.data, error: result.error };
-}
-
-export async function fetchOrganizerStatsClient(): Promise<OrganizerStats | null> {
-  return clientFetch("/api/organizer/stats");
-}
-
-export type TeamSummary = {
-  id: string;
-  fixtureId?: string;
-  name: string;
-  eventId?: string;
-  createdBy?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  memberCount?: number;
-  myRole?: string | null;
-  teamUrl?: string;
-  inviteUrl?: string;
-};
-
-export type TeamMemberInfo = {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
-  joinedAt: string;
-};
-
-export type TeamInviteInfo = {
-  id: string;
-  token: string;
-  teamId: string;
-  expiresAt: string;
-  maxUses: number;
-  usedCount: number;
-  revoked: boolean;
-  createdAt: string;
-  inviteUrl: string;
-  remainingUses: number;
-  expired: boolean;
-};
-
-export type InvitePreview = {
-  token: string;
-  type: "invite" | "legacy";
-  team: {
-    id: string;
-    name: string;
-    memberCount: number;
-  };
-  expiresAt: string | null;
-  maxUses: number | null;
-  usedCount: number | null;
-  remainingUses: number | null;
-  members: TeamMemberInfo[];
-};
-
-export async function fetchMyTeamClient(): Promise<{ team: TeamSummary | null } | null> {
-  return clientFetch("/api/teams/mine");
-}
-
-export async function fetchTeamClient(teamId: string): Promise<{ team: TeamSummary } | null> {
-  return clientFetch(`/api/teams/${teamId}`);
-}
-
-export async function fetchTeamMembersClient(
-  teamId: string,
-): Promise<{ members: TeamMemberInfo[] } | null> {
-  return clientFetch(`/api/teams/${teamId}/members`);
-}
-
-export async function fetchInvitePreview(token: string): Promise<InvitePreview | null> {
-  const res = await fetch(`${backendUrl}/api/invites/${token}`, { next: { revalidate: 0 } });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-export async function fetchInvitePreviewClient(
-  token: string,
-): Promise<{ data: InvitePreview | null; error: string | null; status: number }> {
-  const res = await fetch(`/api/invites/${token}`, { credentials: "include" });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const detail = typeof data?.detail === "string" ? data.detail : "Invitation unavailable";
-    return { data: null, error: detail, status: res.status };
-  }
-  return { data, error: null, status: res.status };
-}
-
-export async function createTeamInviteClient(
-  teamId: string,
-  payload?: { expires_in_hours?: number; max_uses?: number },
-): Promise<{ invite: TeamInviteInfo | null; error: string | null }> {
-  const result = await clientPost<{ invite: TeamInviteInfo }>(
-    `/api/teams/${teamId}/invites`,
-    payload ?? {},
+export async function fetchMyRegistrationClient(event?: string) {
+  return getOrNull<{ registered: boolean; registration: { registeredAt: string } | null }>(
+    `/api/events/registration/mine${qs({ event })}`,
   );
-  return { invite: result.data?.invite ?? null, error: result.error };
 }
 
-export async function joinTeamInviteClient(
-  token: string,
-): Promise<{
-  teamId: string | null;
-  teamName: string | null;
-  alreadyMember: boolean;
-  message: string | null;
-  error: string | null;
-}> {
-  const result = await clientPost<{
-    ok: boolean;
-    teamId: string;
-    teamName: string;
-    alreadyMember: boolean;
-    message: string;
-  }>(`/api/invites/${token}/join`, {});
-  if (result.error) {
-    return {
-      teamId: null,
-      teamName: null,
-      alreadyMember: false,
-      message: null,
-      error: result.error,
-    };
-  }
-  return {
-    teamId: result.data?.teamId ?? null,
-    teamName: result.data?.teamName ?? null,
-    alreadyMember: result.data?.alreadyMember ?? false,
-    message: result.data?.message ?? null,
-    error: null,
-  };
-}
-
-export async function revokeTeamInviteClient(
-  token: string,
-): Promise<{ ok: boolean; error: string | null }> {
-  const res = await fetch(`/api/invites/${token}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    return {
-      ok: false,
-      error: typeof data?.detail === "string" ? data.detail : "Could not revoke invite",
-    };
-  }
-  return { ok: true, error: null };
-}
-
-export async function fetchMyProjectClient(): Promise<{ project: MyProject | null } | null> {
-  return clientFetch("/api/projects/mine");
-}
-
-export async function createTeamClient(
-  name: string,
-): Promise<{ team: TeamSummary | null; error: string | null }> {
-  const result = await clientPost<{ team: TeamSummary }>("/api/teams", { name });
-  return { team: result.data?.team ?? null, error: result.error };
-}
-
-export async function fetchMyRegistrationClient(): Promise<{
-  registered: boolean;
-  registration: { registeredAt: string } | null;
-} | null> {
-  return clientFetch("/api/events/registration/mine");
-}
-
-export async function registerForEventClient(): Promise<{
-  ok: boolean;
-  alreadyRegistered: boolean;
-  error: string | null;
-}> {
-  const result = await clientPost<{
-    ok: boolean;
-    alreadyRegistered: boolean;
-  }>("/api/events/register", {});
+export async function registerForEventClient(event: string) {
+  const result = await request<{ ok: boolean; alreadyRegistered: boolean }>(
+    `/api/events/${encodeURIComponent(event)}/register`,
+    { method: "POST" },
+  );
   return {
     ok: Boolean(result.data?.ok),
     alreadyRegistered: Boolean(result.data?.alreadyRegistered),
@@ -452,93 +479,197 @@ export async function registerForEventClient(): Promise<{
   };
 }
 
-export type AdminStats = {
-  users: number;
-  events: number;
-  projects: number;
-  participants: number;
-  judges: number;
-  organizers: number;
-};
-
-export type AdminUser = {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  suspended: boolean;
-  createdAt: string;
-};
-
-export async function fetchAdminStatsClient(): Promise<AdminStats | null> {
-  return clientFetch("/api/admin/stats");
+export async function createEventClient(payload: EventPayload) {
+  const result = await request<{ event: EventInfo }>("/api/events", { method: "POST", body: payload });
+  return { event: result.data?.event ?? null, error: result.error };
 }
 
-export async function fetchAdminUsersClient(): Promise<AdminUser[]> {
-  const data = await clientFetch("/api/admin/users");
-  return data?.users ?? [];
-}
-
-export async function suspendUserClient(
-  userId: string,
-): Promise<{ ok: boolean; error: string | null }> {
-  const res = await fetch(`/api/admin/users/${userId}/suspend`, {
+export async function updateEventClient(slug: string, payload: EventPayload) {
+  const result = await request<{ event: EventInfo }>(`/api/events/${encodeURIComponent(slug)}`, {
     method: "PATCH",
-    credentials: "include",
+    body: payload,
   });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    return {
-      ok: false,
-      error: typeof data?.detail === "string" ? data.detail : "Request failed",
-    };
-  }
-  return { ok: true, error: null };
+  return { event: result.data?.event ?? null, error: result.error };
 }
 
-export async function saveProjectClient(
-  payload: {
-    title: string;
-    tagline?: string;
-    summary: string;
-    repo_url: string;
-    demo_url?: string;
-    live_url?: string;
-    video_url?: string;
-    thumbnail_url?: string;
-    tech_tags?: string[];
-    track_id: string;
-    status: "DRAFT" | "SUBMITTED";
-  },
-  existingId?: string,
-): Promise<{ project: MyProject | null; error: string | null }> {
-  if (existingId) {
-    const result = await clientPatch<MyProject>(`/api/projects/${existingId}`, payload);
-    return { project: result.data, error: result.error };
-  }
-  const result = await clientPost<MyProject>("/projects/new", payload);
+// ---------------------------------------------------------------------------
+// Participant, teams, invites
+// ---------------------------------------------------------------------------
+
+export async function fetchParticipantOverviewClient(): Promise<ParticipantEntry[] | null> {
+  const data = await getOrNull<{ entries: ParticipantEntry[] }>("/api/participant/overview");
+  return data?.entries ?? null;
+}
+
+export async function fetchMyTeamClient(event?: string) {
+  return getOrNull<{ team: TeamSummary | null }>(`/api/teams/mine${qs({ event })}`);
+}
+
+export async function fetchTeamClient(teamId: string) {
+  return request<{ team: TeamSummary }>(`/api/teams/${teamId}`);
+}
+
+export async function fetchTeamMembersClient(teamId: string) {
+  return getOrNull<{ members: TeamMemberInfo[] }>(`/api/teams/${teamId}/members`);
+}
+
+export async function createTeamClient(name: string, event: string, description?: string) {
+  const result = await request<{ team: TeamSummary }>("/api/teams", {
+    method: "POST",
+    body: { name, event, description },
+  });
+  return { team: result.data?.team ?? null, error: result.error };
+}
+
+export function updateTeamClient(teamId: string, name: string, description?: string) {
+  return request<{ team: TeamSummary }>(`/api/teams/${teamId}`, {
+    method: "PATCH",
+    body: { name, description },
+  });
+}
+
+export function removeTeamMemberClient(teamId: string, memberId: string) {
+  return request<{ ok: boolean; teamDeleted: boolean }>(`/api/teams/${teamId}/members/${memberId}`, {
+    method: "DELETE",
+  });
+}
+
+export function changeTeamMemberRoleClient(
+  teamId: string,
+  memberId: string,
+  role: "OWNER" | "ADMIN" | "MEMBER",
+) {
+  return request<{ ok: boolean }>(`/api/teams/${teamId}/members/${memberId}`, {
+    method: "PATCH",
+    body: { role },
+  });
+}
+
+export async function fetchTeamInvitesClient(teamId: string): Promise<TeamInviteInfo[]> {
+  const data = await getOrNull<{ invites: TeamInviteInfo[] }>(`/api/teams/${teamId}/invites`);
+  return data?.invites ?? [];
+}
+
+export async function createTeamInviteClient(
+  teamId: string,
+  payload?: { expires_in_hours?: number; max_uses?: number },
+) {
+  const result = await request<{ invite: TeamInviteInfo }>(`/api/teams/${teamId}/invites`, {
+    method: "POST",
+    body: payload ?? {},
+  });
+  return { invite: result.data?.invite ?? null, error: result.error };
+}
+
+export async function joinTeamInviteClient(token: string) {
+  const result = await request<{
+    ok: boolean;
+    teamId: string;
+    teamName: string;
+    alreadyMember: boolean;
+    message: string;
+  }>(`/api/invites/${encodeURIComponent(token)}/join`, { method: "POST", body: {} });
+  return {
+    teamId: result.data?.teamId ?? null,
+    teamName: result.data?.teamName ?? null,
+    alreadyMember: result.data?.alreadyMember ?? false,
+    message: result.data?.message ?? null,
+    error: result.error,
+  };
+}
+
+export async function revokeTeamInviteClient(token: string) {
+  const result = await request<{ ok: boolean }>(`/api/invites/${encodeURIComponent(token)}`, {
+    method: "DELETE",
+  });
+  return { ok: !result.error, error: result.error };
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+export async function fetchMyProjectClient(event?: string) {
+  return request<{ project: ProjectDetail | null; team: { id: string; name: string }; event: EventRef }>(
+    `/api/projects/mine${qs({ event })}`,
+  );
+}
+
+export async function saveProjectClient(payload: ProjectPayload, existingId?: string) {
+  const result = existingId
+    ? await request<ProjectDetail>(`/api/projects/${existingId}`, { method: "PATCH", body: payload })
+    : await request<ProjectDetail>("/api/projects", { method: "POST", body: payload });
   return { project: result.data, error: result.error };
 }
 
-export type EventPayload = {
-  name: string;
-  submissions_close: string;
-  tracks: Array<{ id?: string; name: string }>;
-  prizes: Array<{ name: string; amount: string; rank: number; track_index?: number }>;
-};
+// ---------------------------------------------------------------------------
+// Judging (T2)
+// ---------------------------------------------------------------------------
 
-export async function createEventClient(
-  payload: EventPayload,
-): Promise<{ event: EventInfo | null; error: string | null }> {
-  const result = await clientPost<{ event: EventInfo }>("/api/events", payload);
-  return { event: result.data?.event ?? null, error: result.error };
+export async function fetchJudgeAssignmentsClient(): Promise<JudgeAssignment[]> {
+  return (await getOrNull<JudgeAssignment[]>("/api/judge/assignments")) ?? [];
 }
 
-export async function updateEventClient(
-  payload: EventPayload,
-): Promise<{ event: EventInfo | null; error: string | null }> {
-  const result = await clientPatch<{ event: EventInfo }>("/api/events", payload);
-  return { event: result.data?.event ?? null, error: result.error };
+export async function fetchJudgeScoresClient(): Promise<JudgeScore[]> {
+  return (await getOrNull<JudgeScore[]>("/api/judge/scores")) ?? [];
 }
 
-export { backendUrl };
+export async function fetchJudgeRubricClient(): Promise<RubricCriterion[]> {
+  return (await getOrNull<RubricCriterion[]>("/api/judge/rubric")) ?? [];
+}
+
+export async function submitJudgeScoreClient(payload: ScoreSubmitPayload) {
+  const result = await request<JudgeScore>("/api/judge/scores", { method: "POST", body: payload });
+  return { score: result.data, error: result.error };
+}
+
+// ---------------------------------------------------------------------------
+// Organizer
+// ---------------------------------------------------------------------------
+
+export function fetchOrganizerStatsClient(event?: string): Promise<OrganizerStats | null> {
+  return getOrNull<OrganizerStats>(`/api/organizer/stats${qs({ event })}`);
+}
+
+export async function fetchOrganizerEventsClient(): Promise<OrganizerEvent[] | null> {
+  const data = await getOrNull<{ events: OrganizerEvent[] }>("/api/organizer/events");
+  return data?.events ?? null;
+}
+
+export function fetchEventSubmissionsClient(slug: string) {
+  return request<EventSubmissions>(`/api/organizer/events/${encodeURIComponent(slug)}/submissions`);
+}
+
+// ---------------------------------------------------------------------------
+// Admin
+// ---------------------------------------------------------------------------
+
+export function fetchAdminStatsClient(): Promise<AdminStats | null> {
+  return getOrNull<AdminStats>("/api/admin/stats");
+}
+
+export async function fetchAdminUsersClient(params: { q?: string; role?: string } = {}) {
+  const data = await getOrNull<{ total: number; users: AdminUser[] }>(
+    `/api/admin/users${qs(params)}`,
+  );
+  return data ?? { total: 0, users: [] };
+}
+
+export function setUserRoleClient(userId: string, role: UserRole) {
+  return request<{ ok: boolean; user: AdminUser }>(`/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    body: { role },
+  });
+}
+
+export function setUserSuspendedClient(userId: string, suspended: boolean) {
+  return request<{ ok: boolean; user: AdminUser }>(
+    `/api/admin/users/${userId}/${suspended ? "suspend" : "unsuspend"}`,
+    { method: "PATCH" },
+  );
+}
+
+export async function fetchAuditLogClient(action?: string): Promise<AuditEntry[]> {
+  const data = await getOrNull<{ logs: AuditEntry[] }>(`/api/admin/audit${qs({ action, limit: "100" })}`);
+  return data?.logs ?? [];
+}

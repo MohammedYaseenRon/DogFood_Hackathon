@@ -30,15 +30,15 @@ export function HappeningNow({
       title: stats.eventName,
       date: closeDate ? `Closes ${closeDate}` : "Online · 72 hours",
       location: "Online · Worldwide",
-      href: "/projects",
-      cta: "View submissions",
+      href: stats.eventSlug ? `/events/${stats.eventSlug}` : "/events",
+      cta: "View event",
       gradient: CARD_GRADIENTS[0],
     },
     ...(event?.tracks.slice(0, 2).map((track, i) => ({
       title: track.name,
       date: "Active track",
       location: stats.eventName,
-      href: `/projects?track=${track.id}`,
+      href: `/projects?event=${event.slug}&track=${track.id}`,
       cta: "View projects",
       gradient: CARD_GRADIENTS[(i + 1) % CARD_GRADIENTS.length],
     })) ?? []),
@@ -50,7 +50,7 @@ export function HappeningNow({
       title: "Submit your project",
       date: stats.submissionsOpen ? "Submissions open" : "Submissions closed",
       location: "Join a team & submit",
-      href: "/projects/new",
+      href: "/participant",
       cta: "Submit now",
       gradient: CARD_GRADIENTS[cards.length % CARD_GRADIENTS.length],
     });
@@ -64,7 +64,7 @@ export function HappeningNow({
             Happening now
           </h2>
           <Link
-            href="/event"
+            href={stats.eventSlug ? `/events/${stats.eventSlug}` : "/events"}
             className="text-sm font-semibold text-[#3770FF] hover:text-blue-700"
           >
             See all →

@@ -1,3 +1,12 @@
+"""Event lifecycle rules.
+
+Every permission check that depends on the calendar (registering, forming a
+team, submitting or editing a project) goes through this module so that the UI
+and the API can never disagree about whether a window is open.
+
+All datetimes are naive UTC.
+"""
+
 from datetime import datetime
 from enum import Enum
 
@@ -20,54 +29,83 @@ def _now() -> datetime:
     return datetime.utcnow()
 
 
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() + "Z" if value else None
+
+
+def submissions_start(event: Event) -> datetime | None:
+    """When building starts. Without an explicit start, registration opening counts."""
+    return event.event_starts or event.registration_opens
+
+
 def compute_event_phase(event: Event, *, now: datetime | None = None) -> EventPhase:
     current = now or _now()
 
-    if not getattr(event, "published", True):
+    if not event.published:
         return EventPhase.DRAFT
 
-    reg_opens = getattr(event, "registration_opens", None)
-    reg_closes = getattr(event, "registration_closes", None)
-    event_starts = getattr(event, "event_starts", None)
-    judging_starts = getattr(event, "judging_starts", None)
-    judging_ends = getattr(event, "judging_ends", None)
-    results_at = getattr(event, "results_at", None)
-
-    if reg_opens and current < reg_opens:
-        return EventPhase.UPCOMING
-    if reg_opens and reg_closes and reg_opens <= current < reg_closes:
-        return EventPhase.REGISTRATION_OPEN
-    if reg_closes and event_starts and reg_closes <= current < event_starts:
-        return EventPhase.REGISTRATION_CLOSED
-    if event_starts and current < event_starts:
-        return EventPhase.UPCOMING
-
-    submissions_open = current <= event.submissions_close
-    if submissions_open:
-        if event_starts and current >= event_starts:
-            return EventPhase.SUBMISSION_OPEN
-        if not event_starts:
-            return EventPhase.SUBMISSION_OPEN
-        return EventPhase.LIVE
-
-    if judging_starts and judging_ends and judging_starts <= current < judging_ends:
-        return EventPhase.JUDGING
-    if results_at and current >= results_at:
-        return EventPhase.COMPLETED
-    if not submissions_open:
+    if current > event.submissions_close:
+        if event.results_at and current >= event.results_at:
+            return EventPhase.COMPLETED
+        if event.judging_starts and current >= event.judging_starts:
+            return EventPhase.JUDGING
         return EventPhase.SUBMISSIONS_CLOSED
 
-    return EventPhase.LIVE
+    start = submissions_start(event)
+    if start is None or current >= start:
+        return EventPhase.SUBMISSION_OPEN
+
+    # Before hacking starts.
+    if event.registration_opens and current < event.registration_opens:
+        return EventPhase.UPCOMING
+    if can_register(event, now=current):
+        return EventPhase.REGISTRATION_OPEN
+    return EventPhase.REGISTRATION_CLOSED
 
 
 def can_register(event: Event, now: datetime | None = None) -> bool:
-    phase = compute_event_phase(event, now=now)
-    return phase == EventPhase.REGISTRATION_OPEN
+    """Registration is open inside its window and never after the deadline."""
+    current = now or _now()
+    if not event.published or current > event.submissions_close:
+        return False
+    if event.registration_opens and current < event.registration_opens:
+        return False
+    if event.registration_closes and current >= event.registration_closes:
+        return False
+    return True
+
+
+def can_form_team(event: Event, now: datetime | None = None) -> bool:
+    """Teams can be created or joined from registration opening until the deadline."""
+    current = now or _now()
+    if not event.published or current > event.submissions_close:
+        return False
+    if event.registration_opens and current < event.registration_opens:
+        return False
+    return True
 
 
 def can_submit(event: Event, now: datetime | None = None) -> bool:
+    """Projects can be created or edited between the event start and the deadline."""
     current = now or _now()
-    return current <= event.submissions_close
+    if not event.published or current > event.submissions_close:
+        return False
+    start = submissions_start(event)
+    if start and current < start:
+        return False
+    return True
+
+
+def submission_block_reason(event: Event, now: datetime | None = None) -> str | None:
+    current = now or _now()
+    if not event.published:
+        return "This event is not published."
+    if current > event.submissions_close:
+        return "Submission deadline has passed. Your project can no longer be modified."
+    start = submissions_start(event)
+    if start and current < start:
+        return "Submissions open when the event starts."
+    return None
 
 
 def event_state_payload(event: Event) -> dict:
@@ -75,6 +113,8 @@ def event_state_payload(event: Event) -> dict:
     return {
         "phase": phase.value,
         "registrationOpen": can_register(event),
+        "teamFormationOpen": can_form_team(event),
         "submissionsOpen": can_submit(event),
-        "submissionsClose": event.submissions_close.isoformat() + "Z",
+        "submissionsClose": _iso(event.submissions_close),
+        "serverTime": _iso(_now()),
     }

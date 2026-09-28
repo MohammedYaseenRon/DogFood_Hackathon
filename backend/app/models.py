@@ -88,14 +88,21 @@ class Event(Base):
     results_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     published: Mapped[bool] = mapped_column(Boolean, default=True)
     max_team_size: Mapped[int] = mapped_column(default=4)
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    tracks: Mapped[list["Track"]] = relationship(back_populates="event")
+    tracks: Mapped[list["Track"]] = relationship(
+        back_populates="event", order_by="Track.display_order"
+    )
     teams: Mapped[list["Team"]] = relationship(back_populates="event")
     rubric: Mapped[list["RubricCriterion"]] = relationship(back_populates="event")
     prizes: Mapped[list["Prize"]] = relationship(back_populates="event")
     registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="event")
-    custom_questions: Mapped[list["CustomQuestion"]] = relationship(back_populates="event")
+    custom_questions: Mapped[list["CustomQuestion"]] = relationship(
+        back_populates="event", order_by="CustomQuestion.display_order"
+    )
 
 
 class EventRegistration(Base):
@@ -196,9 +203,14 @@ class Project(Base):
     live_url: Mapped[str | None] = mapped_column(String, nullable=True)
     video_url: Mapped[str | None] = mapped_column(String, nullable=True)
     thumbnail_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    image_urls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tech_tags: Mapped[list | None] = mapped_column(JSON, nullable=True)
     status: Mapped[ProjectStatus] = mapped_column(Enum(ProjectStatus), default=ProjectStatus.SUBMITTED)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
     team_id: Mapped[str] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
     track_id: Mapped[str] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"))
 

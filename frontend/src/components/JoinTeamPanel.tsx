@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMeClient, joinTeamInviteClient } from "@/lib/api";
+import { fetchMeClient, joinTeamInviteClient, type UserInfo } from "@/lib/api";
 import { Alert } from "@/components/ui/Alert";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { loginHref, registerHref } from "@/lib/role-auth";
 
 export function JoinTeamPanel({
   token,
@@ -16,16 +17,15 @@ export function JoinTeamPanel({
   teamId: string;
 }) {
   const router = useRouter();
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchMeClient().then((user) => setAuthenticated(Boolean(user)));
+    fetchMeClient().then(setUser);
   }, []);
 
-  const loginHref = `/login?redirect=${encodeURIComponent(`/join/${token}`)}`;
+  const here = `/join/${token}`;
 
   async function joinTeam() {
     setError(null);
@@ -37,13 +37,11 @@ export function JoinTeamPanel({
       setError(result.error);
       return;
     }
-
-    setMessage(result.message ?? `Joined ${teamName}`);
     router.push(`/teams/${result.teamId ?? teamId}`);
     router.refresh();
   }
 
-  if (authenticated === null) {
+  if (user === undefined) {
     return (
       <div className="flex justify-center py-6">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
@@ -51,29 +49,41 @@ export function JoinTeamPanel({
     );
   }
 
-  if (!authenticated) {
+  if (!user) {
     return (
       <div className="space-y-4">
         <Alert tone="info">
-          Sign in as a participant to join this team. You will return here after
-          logging in.
+          Sign in or create an account to join <strong>{teamName}</strong>. You&apos;ll come back
+          here afterwards.
         </Alert>
-        <ButtonLink href={loginHref} className="w-full sm:w-auto">
-          Sign in to join
-        </ButtonLink>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={registerHref(here)}>Create account</ButtonLink>
+          <ButtonLink href={loginHref(here)} variant="secondary">
+            Sign in
+          </ButtonLink>
+        </div>
       </div>
+    );
+  }
+
+  if (user.role !== "VISITOR" && user.role !== "PARTICIPANT") {
+    return (
+      <Alert tone="warning" title={`Signed in as ${user.role.toLowerCase()}`}>
+        Staff accounts can&apos;t join participant teams. Sign in with a participant account to
+        accept this invite.
+      </Alert>
     );
   }
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-600">
-        You&apos;ve been invited to join <strong>{teamName}</strong>.
+        Joining as <strong>{user.name || user.email}</strong>. Joining also registers you for the
+        event.
       </p>
       <Button onClick={joinTeam} disabled={loading} size="lg">
-        {loading ? "Joining..." : "Join team"}
+        {loading ? "Joining..." : `Join ${teamName}`}
       </Button>
-      {message ? <Alert tone="success">{message}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
     </div>
   );

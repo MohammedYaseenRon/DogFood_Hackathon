@@ -18,13 +18,18 @@ export function ProjectStrip({ projects }: { projects: ProjectSummary[] }) {
             return (
               <Link
                 key={project.id}
-                href="/projects"
+                href={`/projects/${project.id}`}
                 className="group flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm transition hover:border-[#3770FF]/30 hover:shadow-md"
               >
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${thumb.gradient} text-lg`}
+                  className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br ${thumb.gradient} text-sm font-bold text-white`}
                 >
-                  {thumb.icon}
+                  {project.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={project.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    project.title.slice(0, 1).toUpperCase()
+                  )}
                 </div>
                 <span className="max-w-[140px] truncate text-sm font-semibold text-zinc-800 group-hover:text-[#3770FF]">
                   {project.title}

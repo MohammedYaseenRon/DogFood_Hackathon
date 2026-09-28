@@ -39,6 +39,7 @@ def run_migrations(engine: Engine) -> None:
                 ("results_at", "DATETIME"),
                 ("published", "BOOLEAN DEFAULT 1"),
                 ("max_team_size", "INTEGER DEFAULT 4"),
+                ("created_by", "VARCHAR"),
             ]:
                 if col not in cols:
                     _add_column(conn, "events", col, ddl)
@@ -94,6 +95,9 @@ def run_migrations(engine: Engine) -> None:
                 ("video_url", "VARCHAR"),
                 ("thumbnail_url", "VARCHAR"),
                 ("tech_tags", "JSON"),
+                ("image_urls", "JSON"),
+                ("created_at", "DATETIME"),
+                ("updated_at", "DATETIME"),
             ]:
                 if col not in cols:
                     _add_column(conn, "projects", col, ddl)

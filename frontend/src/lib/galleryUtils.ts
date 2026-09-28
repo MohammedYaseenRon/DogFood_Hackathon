@@ -1,6 +1,6 @@
 import type { ProjectSummary } from "@/lib/api";
 
-/** Stable hash for deterministic UI placeholders (likes, colors). */
+/** Stable hash so a project always gets the same placeholder colour. */
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -21,81 +21,38 @@ const THUMBNAIL_GRADIENTS = [
   "from-fuchsia-500 via-pink-500 to-rose-500",
 ];
 
-const THUMBNAIL_ICONS = ["🚀", "⚡", "🎯", "💡", "🔬", "🛠", "🌐", "📱", "🤖", "🎨"];
-
-export function projectThumbnail(project: ProjectSummary) {
-  const hash = hashString(project.id);
+/** Placeholder art for projects without a thumbnail. */
+export function projectThumbnail(project: Pick<ProjectSummary, "id">) {
   return {
-    gradient: THUMBNAIL_GRADIENTS[hash % THUMBNAIL_GRADIENTS.length],
-    icon: THUMBNAIL_ICONS[hash % THUMBNAIL_ICONS.length],
+    gradient: THUMBNAIL_GRADIENTS[hashString(project.id) % THUMBNAIL_GRADIENTS.length],
   };
 }
 
-export function projectStats(project: ProjectSummary) {
-  const hash = hashString(project.id + project.teamName);
-  return {
-    likes: 5 + (hash % 120),
-    comments: hash % 15,
-  };
-}
-
-export function teamAvatars(teamName: string) {
-  const parts = teamName.split(/\s+/).filter(Boolean);
-  const initials =
-    parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : teamName.slice(0, 2).toUpperCase();
-
-  const hash = hashString(teamName);
-  const colors = [
-    "bg-violet-500",
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-amber-500",
-    "bg-rose-500",
-  ];
-
-  const count = 1 + (hash % 3);
-  return Array.from({ length: count }, (_, i) => ({
-    initial: i === 0 ? initials[0] : initials[i % initials.length] || "?",
-    color: colors[(hash + i) % colors.length],
-  }));
-}
-
-export function groupProjectsByTrack(
-  projects: ProjectSummary[],
-  tracks: Array<{ id: string; name: string }>,
-): Array<{ trackId: string; trackName: string; projects: ProjectSummary[] }> {
-  const byTrack = new Map<string, ProjectSummary[]>();
-
-  for (const project of projects) {
-    const list = byTrack.get(project.trackName) ?? [];
-    list.push(project);
-    byTrack.set(project.trackName, list);
+/** Turn YouTube / Vimeo / Loom links into an embeddable player URL. */
+export function videoEmbedUrl(url?: string | null): string | null {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
   }
-
-  const ordered: Array<{
-    trackId: string;
-    trackName: string;
-    projects: ProjectSummary[];
-  }> = [];
-
-  for (const track of tracks) {
-    const list = byTrack.get(track.name);
-    if (list?.length) {
-      ordered.push({
-        trackId: track.id,
-        trackName: track.name,
-        projects: list,
-      });
-    }
+  const host = parsed.hostname.replace(/^www\./, "");
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const id = parsed.searchParams.get("v") ?? parsed.pathname.match(/^\/(?:embed|shorts)\/([\w-]+)/)?.[1];
+    return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
   }
-
-  for (const [trackName, list] of byTrack) {
-    if (!tracks.some((t) => t.name === trackName)) {
-      ordered.push({ trackId: "", trackName, projects: list });
-    }
+  if (host === "youtu.be") {
+    const id = parsed.pathname.slice(1);
+    return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
   }
-
-  return ordered;
+  if (host === "vimeo.com") {
+    const id = parsed.pathname.match(/^\/(\d+)/)?.[1];
+    return id ? `https://player.vimeo.com/video/${id}` : null;
+  }
+  if (host === "loom.com") {
+    const id = parsed.pathname.match(/^\/share\/([\w-]+)/)?.[1];
+    return id ? `https://www.loom.com/embed/${id}` : null;
+  }
+  return null;
 }

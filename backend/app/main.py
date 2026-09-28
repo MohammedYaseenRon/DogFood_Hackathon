@@ -13,6 +13,7 @@ from app.routes import (
     invites,
     judge,
     organizer,
+    participant,
     projects,
     teams,
 )
@@ -54,6 +55,7 @@ app.include_router(teams.router)
 app.include_router(invites.router)
 app.include_router(organizer.router)
 app.include_router(admin.router)
+app.include_router(participant.router)
 
 
 @app.get("/health")

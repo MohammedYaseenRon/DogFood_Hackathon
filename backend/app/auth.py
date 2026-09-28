@@ -55,10 +55,19 @@ def serialize_user(user: User) -> dict:
     }
 
 
-def require_role(db: Session, request: Request, roles: list[Role]) -> User:
+def require_user(db: Session, request: Request) -> User:
     user = get_session_user(db, request)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    return user
+
+
+def current_session_key(request: Request) -> str | None:
+    return parse_session_cookie(request.headers.get("cookie"))
+
+
+def require_role(db: Session, request: Request, roles: list[Role]) -> User:
+    user = require_user(db, request)
     if user.role not in roles:
         raise HTTPException(status_code=403, detail="Forbidden")
     return user
