@@ -15,7 +15,10 @@ type ScoreFormProps = {
   rubric: RubricCriterion[];
   initialScore?: JudgeScore;
   onSaved: (score: JudgeScore) => void;
+  onCancel?: () => void;
 };
+
+const SCALE = [1, 2, 3, 4, 5] as const;
 
 function previewTotal(
   criteria: Record<string, number>,
@@ -38,6 +41,7 @@ export function ScoreForm({
   rubric,
   initialScore,
   onSaved,
+  onCancel,
 }: ScoreFormProps) {
   const defaults = useMemo(() => {
     const values: Record<string, number> = {};
@@ -75,65 +79,93 @@ export function ScoreForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4 border-t border-zinc-100 pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-zinc-700">Score {title}</p>
-        <p className="text-sm text-zinc-500">
-          Weighted total:{" "}
-          <span className="font-semibold text-brand-600">{weightedTotal}</span>
+    <form onSubmit={handleSubmit} className="space-y-5 border-t border-dashed border-line pt-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">
+          Scoresheet · {title}
+        </p>
+        <p className="flex items-baseline gap-2">
+          <span className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">
+            Weighted
+          </span>
+          <span className="font-display text-2xl font-semibold text-ink tabular-nums">
+            <span className="hl">{weightedTotal.toFixed(2)}</span>
+          </span>
+          <span className="text-sm text-zinc-400">/ 5</span>
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
         {rubric.map((item) => (
-          <div key={item.name} className="rounded-xl bg-zinc-50 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium capitalize text-zinc-700">
-                {item.name}
-              </label>
-              <span className="text-xs text-zinc-500">×{item.weight}</span>
+          <fieldset
+            key={item.name}
+            className="flex flex-col gap-3 bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <legend className="sr-only">
+              {item.name}, weight {item.weight}
+            </legend>
+            <div className="flex items-baseline gap-2" aria-hidden>
+              <span className="text-sm font-semibold text-ink capitalize">{item.name}</span>
+              <span className="font-mono text-[11px] text-zinc-400">×{item.weight}</span>
             </div>
-            <div className="mt-3 flex items-center gap-3">
-              <input
-                type="range"
-                min={1}
-                max={5}
-                step={1}
-                value={criteria[item.name]}
-                onChange={(e) =>
-                  setCriteria((prev) => ({
-                    ...prev,
-                    [item.name]: Number(e.target.value),
-                  }))
-                }
-                className="w-full accent-brand-600"
-              />
-              <span className="w-6 text-center text-sm font-semibold text-zinc-900">
-                {criteria[item.name]}
-              </span>
+            <div className="flex gap-1.5">
+              {SCALE.map((value) => {
+                const selected = criteria[item.name] === value;
+                return (
+                  <label
+                    key={value}
+                    className={`font-display flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
+                      selected
+                        ? "border-ink bg-signal-300 text-ink shadow-[inset_0_-2px_0_rgba(21,19,43,0.18)]"
+                        : "border-line bg-white text-zinc-500 hover:border-zinc-400 hover:text-ink"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`${projectId}-${item.name}`}
+                      value={value}
+                      checked={selected}
+                      onChange={() =>
+                        setCriteria((prev) => ({ ...prev, [item.name]: value }))
+                      }
+                      className="sr-only"
+                      aria-label={`${item.name}: ${value}`}
+                    />
+                    {value}
+                  </label>
+                );
+              })}
             </div>
-          </div>
+          </fieldset>
         ))}
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+        <label htmlFor={`comment-${projectId}`} className="field-label">
           Comment
         </label>
         <textarea
+          id={`comment-${projectId}`}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          rows={2}
-          className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm"
+          rows={3}
+          className="field"
           placeholder="Optional feedback for the team"
         />
       </div>
 
       {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <Button type="submit" disabled={saving}>
-        {saving ? "Saving..." : initialScore ? "Update score" : "Submit score"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving..." : initialScore ? "Update score" : "Submit score"}
+        </Button>
+        {onCancel ? (
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

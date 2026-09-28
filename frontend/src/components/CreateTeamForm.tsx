@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { createTeamClient, type EventInfo } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 
-const inputClass =
-  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10";
+const inputClass = "field";
 
 export function CreateTeamForm({
   events,
@@ -62,7 +61,7 @@ export function CreateTeamForm({
   return (
     <form onSubmit={handleCreate} className="space-y-5">
       <div>
-        <label htmlFor="team-event" className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label htmlFor="team-event" className="field-label">
           Event
         </label>
         <select
@@ -85,7 +84,7 @@ export function CreateTeamForm({
         ) : null}
       </div>
       <div>
-        <label htmlFor="team-name" className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label htmlFor="team-name" className="field-label">
           Team name
         </label>
         <input
@@ -99,7 +98,7 @@ export function CreateTeamForm({
         />
       </div>
       <div>
-        <label htmlFor="team-desc" className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label htmlFor="team-desc" className="field-label">
           What are you building? <span className="font-normal text-zinc-400">(optional)</span>
         </label>
         <textarea

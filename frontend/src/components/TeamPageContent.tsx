@@ -243,7 +243,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
             <form onSubmit={saveTeam} className="space-y-4">
               <h2 className="font-display text-lg font-semibold text-ink">Edit team</h2>
               <div>
-                <label htmlFor="edit-team-name" className="mb-2 block text-sm font-semibold text-zinc-700">
+                <label htmlFor="edit-team-name" className="field-label">
                   Name
                 </label>
                 <input
@@ -256,7 +256,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
                 />
               </div>
               <div>
-                <label htmlFor="edit-team-desc" className="mb-2 block text-sm font-semibold text-zinc-700">
+                <label htmlFor="edit-team-desc" className="field-label">
                   Description
                 </label>
                 <textarea

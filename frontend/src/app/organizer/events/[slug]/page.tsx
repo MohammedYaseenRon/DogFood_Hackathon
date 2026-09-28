@@ -22,7 +22,7 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
   if (!event || !submissions) {
     return (
       <OrganizerGate>
-        <PageShell tone="slate" title="Event not found">
+        <PageShell title="Event not found">
           <EmptyState
             title="No event at this address"
             description="Pick an event from the organizer dashboard."
@@ -49,7 +49,6 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
   return (
     <OrganizerGate>
       <PageShell
-        tone="violet"
         eyebrow="Organizer · Event"
         title={event.name}
         description={event.shortDescription ?? undefined}
@@ -79,11 +78,14 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
         <div className="space-y-10">
           {saved ? <Alert tone="success">Event saved.</Alert> : null}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="Registered" value={counts.registrations} />
-            <Metric label="Teams" value={counts.teams} />
-            <Metric label="Submitted" value={counts.submitted} />
-            <Metric label="Drafts" value={counts.drafts} />
+          <div className="relative overflow-hidden rounded-2xl bg-ink text-white">
+            <div aria-hidden className="graph-paper-dark absolute inset-0" />
+            <dl className="relative grid grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/10">
+              <Metric label="Registered" value={counts.registrations} />
+              <Metric label="Teams" value={counts.teams} />
+              <Metric label="Submitted" value={counts.submitted} accent />
+              <Metric label="Drafts" value={counts.drafts} />
+            </dl>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -91,30 +93,30 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
               {submissions.teams.length === 0 ? (
                 <EmptyState title="No teams yet" description="Teams appear as participants create them." />
               ) : (
-                <Card variant="elevated" className="overflow-hidden p-0">
+                <Card className="overflow-hidden p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-zinc-50 text-left text-zinc-500">
+                      <thead className="border-b border-line text-left font-mono text-[11px] tracking-[0.12em] text-zinc-500 uppercase">
                         <tr>
-                          <th className="px-5 py-3 font-semibold">Team</th>
-                          <th className="px-5 py-3 font-semibold">Project</th>
-                          <th className="px-5 py-3 font-semibold">Track</th>
-                          <th className="px-5 py-3 font-semibold">Status</th>
-                          <th className="px-5 py-3 font-semibold">Updated</th>
+                          <th className="px-5 py-3 font-medium">Team</th>
+                          <th className="px-5 py-3 font-medium">Project</th>
+                          <th className="px-5 py-3 font-medium">Track</th>
+                          <th className="px-5 py-3 font-medium">Status</th>
+                          <th className="px-5 py-3 font-medium">Updated</th>
                         </tr>
                       </thead>
                       <tbody>
                         {submissions.teams.map((row) => (
-                          <tr key={row.teamId} className="border-t border-zinc-100 align-top">
+                          <tr key={row.teamId} className="border-t border-line align-top transition hover:bg-zinc-50/70">
                             <td className="px-5 py-3">
-                              <p className="font-semibold text-zinc-900">{row.teamName}</p>
+                              <p className="font-semibold text-ink">{row.teamName}</p>
                               <p className="mt-0.5 text-xs text-zinc-500">
                                 {row.members.map((m) => m.name).join(", ")}
                               </p>
                             </td>
                             <td className="px-5 py-3">
                               {row.project ? (
-                                <Link href={`/projects/${row.project.id}`} className="font-medium text-brand-700 hover:underline">
+                                <Link href={`/projects/${row.project.id}`} className="font-semibold text-brand-700 underline-offset-4 hover:underline">
                                   {row.project.title || "Untitled"}
                                 </Link>
                               ) : (
@@ -145,34 +147,52 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
 
             <aside className="space-y-6">
               <Card>
-                <h2 className="font-display text-lg font-semibold text-zinc-900">Schedule</h2>
-                <dl className="mt-4 space-y-3 text-sm">
-                  {schedule.map(([label, at]) => (
-                    <div key={label} className="flex justify-between gap-4">
-                      <dt className="text-zinc-500">{label}</dt>
-                      <dd className="text-right font-medium text-zinc-900">{formatDateTime(at, "—")}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="mt-5 space-y-1.5 border-t border-zinc-100 pt-4 text-sm">
+                <h2 className="font-display text-lg font-semibold text-ink">Schedule</h2>
+                <ol className="relative mt-5 space-y-4 border-l border-line pl-5 text-sm">
+                  {schedule.map(([label, at]) => {
+                    const deadline = label === "Submission deadline";
+                    return (
+                      <li key={label} className="relative">
+                        <span
+                          aria-hidden
+                          className={`absolute top-1 -left-[25px] h-2.5 w-2.5 rounded-[3px] ${
+                            deadline ? "bg-signal-300 ring-2 ring-ink" : at ? "bg-ink" : "bg-zinc-300"
+                          }`}
+                        />
+                        <p className="font-mono text-[11px] tracking-[0.12em] text-zinc-500 uppercase">{label}</p>
+                        <p className={`mt-0.5 font-medium ${at ? "text-ink" : "text-zinc-400"}`}>
+                          {formatDateTime(at, "Not set")}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <div className="mt-5 space-y-1.5 border-t border-dashed border-line pt-4 text-sm">
                   <StatusLine ok={event.state.registrationOpen} label="Registration" />
                   <StatusLine ok={event.state.teamFormationOpen} label="Team formation" />
                   <StatusLine ok={event.state.submissionsOpen} label="Submissions" />
                 </div>
               </Card>
               <Card>
-                <h2 className="font-display text-lg font-semibold text-zinc-900">Configuration</h2>
-                <ul className="mt-4 space-y-2 text-sm text-zinc-600">
-                  <li>{event.tracks.length} tracks</li>
-                  <li>{event.prizes.length} prizes</li>
-                  <li>{event.questions.length} submission questions</li>
-                  <li>Teams of up to {event.maxTeamSize}</li>
-                </ul>
+                <h2 className="font-display text-lg font-semibold text-ink">Configuration</h2>
+                <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  {[
+                    ["Tracks", event.tracks.length],
+                    ["Prizes", event.prizes.length],
+                    ["Questions", event.questions.length],
+                    ["Team size", `≤ ${event.maxTeamSize}`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-lg border border-line bg-zinc-50 px-3 py-2">
+                      <dt className="font-mono text-[10px] tracking-[0.12em] text-zinc-500 uppercase">{label}</dt>
+                      <dd className="font-display mt-0.5 text-lg font-semibold text-ink">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
                 <a
                   href={`/api/export.csv?event=${event.slug}`}
-                  className="mt-5 inline-flex text-sm font-semibold text-brand-700 hover:underline"
+                  className="mt-5 inline-flex h-9 items-center rounded-lg bg-ink px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700"
                 >
-                  Download scores CSV →
+                  Download scores CSV ↓
                 </a>
               </Card>
             </aside>
@@ -183,11 +203,13 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">{label}</p>
-      <p className="font-display mt-3 text-3xl font-semibold text-ink">{value}</p>
+    <div className="px-6 py-5">
+      <dt className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">{label}</dt>
+      <dd className={`font-display mt-2 text-3xl font-semibold tabular-nums ${accent ? "text-signal-300" : ""}`}>
+        {value}
+      </dd>
     </div>
   );
 }
@@ -196,7 +218,10 @@ function StatusLine({ ok, label }: { ok: boolean; label: string }) {
   return (
     <p className="flex items-center justify-between">
       <span className="text-zinc-500">{label}</span>
-      <span className={`font-semibold ${ok ? "text-emerald-600" : "text-zinc-400"}`}>{ok ? "Open" : "Closed"}</span>
+      <span className={`inline-flex items-center gap-1.5 font-semibold ${ok ? "text-emerald-700" : "text-zinc-400"}`}>
+        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-emerald-500" : "bg-zinc-300"}`} />
+        {ok ? "Open" : "Closed"}
+      </span>
     </p>
   );
 }

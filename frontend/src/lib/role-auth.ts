@@ -20,8 +20,8 @@ export const ROLE_AUTH: Record<RoleMode, RoleAuthConfig> = {
     sessionKey: "prt_2e88",
     defaultRedirect: "/participant",
     icon: "P",
-    iconBg: "bg-amber-500",
-    hoverBorder: "hover:border-amber-200 hover:bg-amber-50/40",
+    iconBg: "bg-brand-600",
+    hoverBorder: "hover:border-ink hover:bg-white",
     description: "Instant access with a pre-seeded team",
   },
   organizer: {
@@ -31,8 +31,8 @@ export const ROLE_AUTH: Record<RoleMode, RoleAuthConfig> = {
     sessionKey: "org_7f2a",
     defaultRedirect: "/organizer/dashboard",
     icon: "O",
-    iconBg: "bg-zinc-900",
-    hoverBorder: "hover:border-zinc-300 hover:bg-zinc-50",
+    iconBg: "bg-ink",
+    hoverBorder: "hover:border-ink hover:bg-white",
     description: "Instant access to event setup and judging ops",
   },
   judge: {
@@ -43,7 +43,7 @@ export const ROLE_AUTH: Record<RoleMode, RoleAuthConfig> = {
     defaultRedirect: "/judging",
     icon: "J",
     iconBg: "bg-emerald-600",
-    hoverBorder: "hover:border-emerald-200 hover:bg-emerald-50/40",
+    hoverBorder: "hover:border-ink hover:bg-white",
     description: "Score assigned projects with demo judge account",
   },
   admin: {
@@ -53,8 +53,8 @@ export const ROLE_AUTH: Record<RoleMode, RoleAuthConfig> = {
     sessionKey: "adm_3c91",
     defaultRedirect: "/admin",
     icon: "A",
-    iconBg: "bg-zinc-700",
-    hoverBorder: "hover:border-zinc-300 hover:bg-zinc-50",
+    iconBg: "bg-zinc-600",
+    hoverBorder: "hover:border-ink hover:bg-white",
     description: "Full platform access including event setup",
   },
 };

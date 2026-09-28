@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { Countdown } from "@/components/ui/Countdown";
 import { FormPageLayout } from "@/components/ui/FormPageLayout";
 import {
   fetchEventClient,
@@ -66,8 +67,7 @@ function fromProject(project: ProjectDetail): FormState {
   };
 }
 
-const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100 disabled:bg-zinc-50 disabled:text-zinc-500";
+const inputClass = "field";
 
 type Loaded =
   | { ok: true; event: EventInfo | null; teamName: string; project: ProjectDetail | null }
@@ -252,8 +252,8 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-canvas">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
       </div>
     );
   }
@@ -289,25 +289,36 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
       description={`Team ${teamName}. Save drafts as often as you like — only a submitted project appears in the gallery.`}
       aside={
         <div className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">Status</p>
-            <div className="mt-4 space-y-3">
-              <InfoRow label="Your project" value={statusLabel} tone={status === "SUBMITTED" ? "open" : undefined} />
-              <InfoRow
-                label="Deadline"
-                value={`${formatDateTime(event.submissionsClose)}${closed ? "" : ` · ${relativeTime(event.submissionsClose)}`}`}
-                tone={closed ? "closed" : undefined}
-              />
-              <InfoRow label="Submissions" value={closed ? "Closed" : "Open"} tone={closed ? "closed" : "open"} />
+          <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white">
+            <div aria-hidden className="graph-paper-dark absolute inset-0" />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">Deadline</p>
+                <Countdown to={event.submissionsClose} tone="dark" closedLabel="Closed" />
+              </div>
+              <p className="font-display mt-3 text-lg leading-snug font-semibold">
+                {formatDateTime(event.submissionsClose)}
+              </p>
+              {!closed ? (
+                <p className="mt-1 text-sm text-white/55">{relativeTime(event.submissionsClose)}</p>
+              ) : null}
+              <dl className="mt-5 space-y-2.5 border-t border-dashed border-white/15 pt-4 text-sm">
+                <InfoRow label="Your project" value={statusLabel} tone={status === "SUBMITTED" ? "open" : undefined} />
+                <InfoRow label="Submissions" value={closed ? "Closed" : "Open"} tone={closed ? "closed" : "open"} />
+                <InfoRow label="Team" value={teamName} />
+              </dl>
+              {project ? (
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="mt-5 inline-flex text-sm font-semibold text-signal-300 underline-offset-4 hover:underline"
+                >
+                  {status === "SUBMITTED" ? "View public page →" : "Preview (team only) →"}
+                </Link>
+              ) : null}
             </div>
-            {project ? (
-              <Link href={`/projects/${project.id}`} className="mt-5 inline-flex text-sm font-semibold text-brand-700 hover:underline">
-                {status === "SUBMITTED" ? "View public page →" : "Preview (team only) →"}
-              </Link>
-            ) : null}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-900">To submit you need</p>
+          <div className="rounded-2xl border border-line bg-white p-6">
+            <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">To submit you need</p>
             <ul className="mt-3 space-y-2 text-sm text-zinc-600">
               <Check done={Boolean(form.title.trim())}>Project name & track</Check>
               <Check done={Boolean(form.summary.trim())}>Description</Check>
@@ -320,7 +331,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
                   </Check>
                 ))}
             </ul>
-            <p className="mt-4 text-xs text-zinc-400">Everything else is optional but helps judges.</p>
+            <p className="mt-4 border-t border-line pt-3 text-xs text-zinc-400">Everything else is optional but helps judges.</p>
           </div>
         </div>
       }
@@ -346,7 +357,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
         >
           <fieldset disabled={readOnly} className="space-y-10">
             <section className="space-y-5">
-              <SectionHeader title="Basics" description="What judges and gallery visitors see first." />
+              <SectionHeader step={1} title="Basics" description="What judges and gallery visitors see first." />
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Project name *" htmlFor="p-title">
                   <input id="p-title" value={form.title} onChange={(e) => set("title", e.target.value)} maxLength={200} className={inputClass} placeholder="My awesome hack" />
@@ -378,7 +389,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
             </section>
 
             <section className="space-y-5">
-              <SectionHeader title="Links" description="Where judges can see and run your work." />
+              <SectionHeader step={2} title="Links" description="Where judges can see and run your work." />
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Repository URL *" htmlFor="p-repo" className="sm:col-span-2">
                   <input id="p-repo" type="url" value={form.repoUrl} onChange={(e) => set("repoUrl", e.target.value)} className={inputClass} placeholder="https://github.com/you/project" />
@@ -393,24 +404,24 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
             </section>
 
             <section className="space-y-5">
-              <SectionHeader title="Media" description="Hosted image links — nothing is uploaded to this server." />
+              <SectionHeader step={3} title="Media" description="Hosted image links — nothing is uploaded to this server." />
               <Field label="Thumbnail URL" htmlFor="p-thumb" hint="Shown on the gallery card. 16:10 works best.">
                 <div className="flex gap-3">
                   <input id="p-thumb" type="url" value={form.thumbnailUrl} onChange={(e) => set("thumbnailUrl", e.target.value)} className={inputClass} placeholder="https://…/cover.png" />
                   {URL_RE.test(form.thumbnailUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={form.thumbnailUrl} alt="" className="h-12 w-20 shrink-0 rounded-lg border border-zinc-200 object-cover" />
+                    <img src={form.thumbnailUrl} alt="" className="h-12 w-20 shrink-0 rounded-lg border border-line object-cover" />
                   ) : null}
                 </div>
               </Field>
               <div>
-                <p className="mb-2 text-sm font-semibold text-zinc-700">
+                <p className="field-label">
                   Image gallery <span className="font-normal text-zinc-400">({form.imageUrls.length}/{MAX_IMAGES})</span>
                 </p>
                 {form.imageUrls.length ? (
                   <ul className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {form.imageUrls.map((url, index) => (
-                      <li key={url} className="group relative overflow-hidden rounded-lg border border-zinc-200">
+                      <li key={url} className="group relative overflow-hidden rounded-lg border border-line bg-zinc-100">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={url} alt={`Screenshot ${index + 1}`} className="aspect-[16/10] w-full object-cover" />
                         {!readOnly ? (
@@ -450,12 +461,12 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
                 ) : null}
               </div>
               <div>
-                <label htmlFor="p-tags" className="mb-2 block text-sm font-semibold text-zinc-700">
+                <label htmlFor="p-tags" className="field-label">
                   Tech tags <span className="font-normal text-zinc-400">({form.techTags.length}/{MAX_TAGS})</span>
                 </label>
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                <div className="field flex flex-wrap items-center gap-2 px-2.5 py-2 focus-within:border-brand-600 focus-within:shadow-[0_0_0_3px_rgba(42,75,223,0.14)]">
                   {form.techTags.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2 py-1 font-mono text-xs font-medium text-brand-700 ring-1 ring-brand-200 ring-inset">
                       {tag}
                       {!readOnly ? (
                         <button type="button" aria-label={`Remove ${tag}`} onClick={() => set("techTags", form.techTags.filter((t) => t !== tag))} className="text-brand-400 hover:text-brand-800">
@@ -490,7 +501,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
 
             {(event.questions ?? []).length > 0 ? (
               <section className="space-y-5">
-                <SectionHeader title="Organizer questions" description="Visible to your team, organizers and judges only." />
+                <SectionHeader step={4} title="Organizer questions" description="Visible to your team, organizers and judges only." />
                 {event.questions.map((question) => {
                   const id = `q-${question.id}`;
                   const value = form.answers[question.id] ?? "";
@@ -522,7 +533,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
           {message ? <Alert tone="success">{message}</Alert> : null}
 
           {!readOnly ? (
-            <div className="flex flex-col gap-4 border-t border-zinc-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky bottom-4 z-10 flex flex-col gap-4 rounded-xl border border-line bg-white/90 p-4 shadow-[0_12px_32px_-12px_rgba(21,19,43,0.25)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-zinc-500">
                 {dirty ? <Badge tone="warning">Unsaved changes</Badge> : project ? "All changes saved." : "Nothing saved yet."}
               </p>
@@ -555,11 +566,16 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
   );
 }
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
+function SectionHeader({ step, title, description }: { step: number; title: string; description: string }) {
   return (
-    <div className="border-b border-zinc-100 pb-3">
-      <h2 className="text-sm font-bold tracking-wide text-zinc-900 uppercase">{title}</h2>
-      <p className="mt-1 text-sm text-zinc-500">{description}</p>
+    <div className="flex items-start gap-4 border-b border-line pb-4">
+      <span className="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink text-sm font-semibold text-signal-300">
+        {step}
+      </span>
+      <div>
+        <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
+        <p className="mt-0.5 text-sm text-zinc-500">{description}</p>
+      </div>
     </div>
   );
 }
@@ -579,7 +595,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={htmlFor} className="mb-2 block text-sm font-semibold text-zinc-700">
+      <label htmlFor={htmlFor} className="field-label">
         {label}
       </label>
       {children}
@@ -592,28 +608,32 @@ function Check({ done, children }: { done: boolean; children: React.ReactNode })
   return (
     <li className="flex items-start gap-2.5">
       <span
-        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-          done ? "bg-emerald-500 text-white" : "bg-zinc-100 text-zinc-400"
+        aria-hidden
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+          done ? "bg-signal-300 text-ink" : "border border-dashed border-zinc-300 text-transparent"
         }`}
       >
-        {done ? "✓" : "·"}
+        ✓
       </span>
-      <span className={done ? "text-zinc-800" : ""}>{children}</span>
+      <span className={done ? "text-zinc-400 line-through decoration-zinc-300" : "text-ink"}>
+        {children}
+        <span className="sr-only">{done ? " (done)" : " (missing)"}</span>
+      </span>
     </li>
   );
 }
 
 function InfoRow({ label, value, tone }: { label: string; value: string; tone?: "open" | "closed" }) {
   return (
-    <div className="rounded-xl border border-zinc-100 bg-canvas px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</p>
-      <p
-        className={`mt-1 text-sm font-semibold ${
-          tone === "open" ? "text-emerald-700" : tone === "closed" ? "text-amber-700" : "text-zinc-900"
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-white/55">{label}</dt>
+      <dd
+        className={`truncate font-semibold ${
+          tone === "open" ? "text-emerald-300" : tone === "closed" ? "text-amber-300" : "text-white"
         }`}
       >
         {value}
-      </p>
+      </dd>
     </div>
   );
 }

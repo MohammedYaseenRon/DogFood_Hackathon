@@ -71,6 +71,6 @@ Judge aliases map to fixture users:
 Judges use `/judging` to:
 
 1. View assigned projects and progress
-2. Open a score form with 1–5 sliders per criterion
+2. Open a score form with 1–5 score boxes per criterion
 3. See a live weighted total preview
 4. Submit or update scores

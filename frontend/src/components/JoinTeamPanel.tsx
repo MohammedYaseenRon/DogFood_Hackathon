@@ -44,7 +44,7 @@ export function JoinTeamPanel({
   if (user === undefined) {
     return (
       <div className="flex justify-center py-6">
-        <div className="h-7 w-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
       </div>
     );
   }

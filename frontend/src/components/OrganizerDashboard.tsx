@@ -163,7 +163,7 @@ export function OrganizerDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
       </div>
     );
   }
@@ -172,7 +172,7 @@ export function OrganizerDashboard() {
     return (
       <main className="min-h-screen bg-zinc-50/80 pb-16">
         <section className="mx-auto max-w-3xl px-6 py-16">
-          <div className="rounded-2xl border border-line bg-white p-8 text-center ">
+          <div className="rounded-2xl border border-line bg-white p-8 text-center">
             <h1 className="font-display text-2xl font-semibold text-ink">No events yet</h1>
             <p className="mt-2 text-sm text-zinc-500">Create your first hackathon to open registration.</p>
             <ButtonLink href="/organizer/event/new" className="mt-6">
@@ -201,7 +201,7 @@ export function OrganizerDashboard() {
           </div>
         </div>
         <section className="mx-auto max-w-3xl px-6 py-12">
-          <div className="rounded-2xl border border-line bg-white p-8 ">
+          <div className="rounded-2xl border border-line bg-white p-8">
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/login?mode=organizer&redirect=/organizer/dashboard">
                 Sign in as organizer
@@ -312,7 +312,7 @@ export function OrganizerDashboard() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
-          <div className="overflow-hidden rounded-2xl border border-line bg-white ">
+          <div className="overflow-hidden rounded-2xl border border-line bg-white">
             <div className="flex flex-col gap-4 border-b border-zinc-100 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="font-display text-xl font-semibold text-ink">
@@ -343,12 +343,14 @@ export function OrganizerDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-b border-zinc-100 px-5 py-4">
+            <div className="flex flex-col gap-3 border-b border-line bg-zinc-50/60 px-5 py-4">
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search judges by name or email"
-                className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-brand-400 focus:bg-white"
+                aria-label="Search judges"
+                type="search"
+                className="field"
               />
               <div className="flex flex-wrap gap-2">
                 {filters.map((item) => {
@@ -358,21 +360,22 @@ export function OrganizerDashboard() {
                       key={item.id}
                       type="button"
                       onClick={() => setFilter(item.id)}
-                      className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
+                      aria-pressed={active}
+                      className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
                         active
-                          ? "bg-zinc-950 text-white"
-                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                          ? "border-ink bg-ink text-white"
+                          : "border-line bg-white text-zinc-600 hover:border-zinc-400 hover:text-ink"
                       }`}
                     >
                       {item.label}
-                      <span className="ml-1.5 text-xs opacity-70">{item.count}</span>
+                      <span className="ml-1.5 font-mono text-xs opacity-60">{item.count}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="divide-y divide-zinc-100">
+            <div className="divide-y divide-line">
               {visibleJudges.length === 0 ? (
                 <div className="px-5 py-16 text-center text-sm text-zinc-500">
                   No judges match this filter.
@@ -387,7 +390,15 @@ export function OrganizerDashboard() {
                       className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-100 font-display text-sm font-semibold text-brand-700">
+                        <div
+                          className={`font-display flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${
+                            status === "done"
+                              ? "bg-emerald-600 text-white"
+                              : status === "behind"
+                                ? "bg-signal-300 text-ink"
+                                : "bg-ink text-white"
+                          }`}
+                        >
                           {initials(judge.name)}
                         </div>
                         <div className="min-w-0">
@@ -404,9 +415,9 @@ export function OrganizerDashboard() {
                         </div>
                       </div>
                       <div className="w-full sm:w-56">
-                        <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
-                          <span className="text-zinc-500">Progress</span>
-                          <span className="text-zinc-900">{judge.percent}%</span>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-500 uppercase">Progress</span>
+                          <span className="font-mono text-xs font-semibold text-ink">{judge.percent}%</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
                           <div
@@ -414,7 +425,7 @@ export function OrganizerDashboard() {
                               status === "done"
                                 ? "bg-emerald-500"
                                 : status === "behind"
-                                  ? "bg-amber-500"
+                                  ? "bg-signal-400"
                                   : "bg-ink"
                             }`}
                             style={{ width: `${Math.min(judge.percent, 100)}%` }}
@@ -429,7 +440,7 @@ export function OrganizerDashboard() {
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-2xl border border-line bg-white p-5 ">
+            <div className="rounded-2xl border border-line bg-white p-5">
               <h2 className="font-display text-lg font-semibold text-ink">
                 Needs attention
               </h2>
@@ -438,18 +449,19 @@ export function OrganizerDashboard() {
               </p>
               <div className="mt-5 space-y-3">
                 {derived.attention.length === 0 ? (
-                  <p className="rounded-2xl bg-emerald-50 px-4 py-5 text-sm font-medium text-emerald-800">
+                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5 text-sm font-medium text-emerald-800">
                     All judges are on pace. Nothing urgent right now.
                   </p>
                 ) : (
                   derived.attention.map((judge) => (
                     <div
                       key={judge.id}
-                      className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3"
+                      className="relative overflow-hidden rounded-xl border border-line bg-white py-3 pr-4 pl-5"
                     >
+                      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-signal-300" />
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-semibold text-zinc-900">{judge.name}</p>
-                        <span className="text-sm font-bold text-amber-700">
+                        <p className="font-semibold text-ink">{judge.name}</p>
+                        <span className="font-mono text-sm font-semibold text-ink">
                           {judge.percent}%
                         </span>
                       </div>
@@ -505,7 +517,7 @@ export function OrganizerDashboard() {
 
 function EventsTable({ events, selected }: { events: OrganizerEvent[]; selected: string }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white ">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white">
       <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
         <div>
           <h2 className="font-display text-xl font-semibold text-ink">Your events</h2>
@@ -601,10 +613,10 @@ function MetricCard({
 
 function StatusChip({ status }: { status: "idle" | "behind" | "active" | "done" }) {
   const styles = {
-    idle: "bg-zinc-100 text-zinc-600",
-    behind: "bg-amber-100 text-amber-800",
-    active: "bg-brand-100 text-brand-700",
-    done: "bg-emerald-100 text-emerald-800",
+    idle: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+    behind: "bg-signal-100 text-signal-600 ring-signal-200",
+    active: "bg-brand-50 text-brand-700 ring-brand-200",
+    done: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   };
   const labels = {
     idle: "Unassigned",
@@ -613,7 +625,7 @@ function StatusChip({ status }: { status: "idle" | "behind" | "active" | "done" 
     done: "Done",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${styles[status]}`}>
+    <span className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wide uppercase ring-1 ring-inset ${styles[status]}`}>
       {labels[status]}
     </span>
   );

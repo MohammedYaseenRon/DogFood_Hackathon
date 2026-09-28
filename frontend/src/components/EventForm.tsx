@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { Countdown } from "@/components/ui/Countdown";
 import {
   createEventClient,
   updateEventClient,
@@ -56,8 +57,7 @@ const ORDER_RULES: Array<[DateKey, DateKey, string]> = [
   ["judging_ends", "results_at", "Results cannot come before judging ends"],
 ];
 
-const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100";
+const inputClass = "field";
 
 function isoToInput(event: EventInfo | null | undefined, key: DateKey): string {
   if (!event) return "";
@@ -233,7 +233,7 @@ export function EventForm({
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="space-y-6">
-        <Section step={1} tone="bg-zinc-100 text-zinc-700" title="Event details" description="How the event appears on the public listing.">
+        <Section step={1} title="Event details" description="How the event appears on the public listing.">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Event name" htmlFor="ev-name" className="sm:col-span-2">
               <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} className={inputClass} placeholder="Dogfood 2026" />
@@ -250,10 +250,10 @@ export function EventForm({
             <Field label="Description" htmlFor="ev-desc" className="sm:col-span-2">
               <textarea id="ev-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={10000} className={inputClass} placeholder="Rules, themes, eligibility, anything participants should know." />
             </Field>
-            <label className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:col-span-2">
-              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="mt-1 h-4 w-4" />
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-zinc-50 p-4 transition has-[:checked]:border-ink has-[:checked]:bg-signal-50 sm:col-span-2">
+              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="mt-0.5 h-4 w-4 accent-ink" />
               <span>
-                <span className="block text-sm font-semibold text-zinc-900">Published</span>
+                <span className="block text-sm font-semibold text-ink">Published</span>
                 <span className="block text-sm text-zinc-500">
                   Unpublished events are hidden from the public and accept no registrations or submissions.
                 </span>
@@ -262,7 +262,7 @@ export function EventForm({
           </div>
         </Section>
 
-        <Section step={2} tone="bg-brand-100 text-brand-700" title="Schedule" description="Times are in your local timezone. Only the deadline is required.">
+        <Section step={2} title="Schedule" description="Times are in your local timezone. Only the deadline is required.">
           <div className="grid gap-5 sm:grid-cols-2">
             {DATE_FIELDS.map((field) => (
               <Field key={field.key} label={`${field.label}${field.required ? " *" : ""}`} htmlFor={`ev-${field.key}`} hint={field.hint}>
@@ -276,7 +276,7 @@ export function EventForm({
                     className={inputClass}
                   />
                   {!field.required && dates[field.key] ? (
-                    <button type="button" onClick={() => setDate(field.key, "")} className="shrink-0 rounded-lg px-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-100" aria-label={`Clear ${field.label}`}>
+                    <button type="button" onClick={() => setDate(field.key, "")} className="shrink-0 rounded-lg px-2.5 font-mono text-[11px] tracking-wide text-zinc-500 uppercase hover:bg-zinc-100 hover:text-ink" aria-label={`Clear ${field.label}`}>
                       Clear
                     </button>
                   ) : null}
@@ -299,16 +299,16 @@ export function EventForm({
 
         <Section
           step={3}
-          tone="bg-brand-100 text-brand-700"
+         
           title="Tracks"
           description="Participants pick one when submitting. Removing a track that has projects retires it instead."
           action={<Button type="button" variant="secondary" size="sm" onClick={() => setTracks((prev) => [...prev, { name: "", description: "" }])}>+ Add track</Button>}
         >
           <div className="space-y-3">
             {tracks.map((track, index) => (
-              <div key={track.id ?? `new-${index}`} className="rounded-2xl border border-zinc-100 bg-zinc-50/60 p-3">
+              <div key={track.id ?? `new-${index}`} className="rounded-xl border border-line bg-zinc-50/70 p-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-zinc-500 shadow-sm">{index + 1}</span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white font-mono text-xs font-semibold text-zinc-500 ring-1 ring-line">{index + 1}</span>
                   <input
                     aria-label={`Track ${index + 1} name`}
                     value={track.name}
@@ -341,7 +341,7 @@ export function EventForm({
 
         <Section
           step={4}
-          tone="bg-amber-100 text-amber-700"
+         
           title="Prizes"
           description="Shown on the public event page, optionally tied to a track."
           action={<Button type="button" variant="secondary" size="sm" onClick={() => setPrizes((prev) => [...prev, { name: "", amount: "", rank: prev.length + 1, trackIndex: "" }])}>+ Add prize</Button>}
@@ -349,7 +349,7 @@ export function EventForm({
           {prizes.length === 0 ? <p className="text-sm text-zinc-500">No prizes yet.</p> : null}
           <div className="space-y-4">
             {prizes.map((prize, index) => (
-              <div key={index} className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 sm:grid-cols-[1fr_140px_90px_1fr_auto] sm:items-end">
+              <div key={index} className="grid gap-3 rounded-xl border border-line bg-zinc-50/70 p-4 sm:grid-cols-[1fr_140px_90px_1fr_auto] sm:items-end">
                 <Field label="Prize" htmlFor={`pz-name-${index}`}>
                   <input id={`pz-name-${index}`} value={prize.name} onChange={(e) => setPrizes((prev) => prev.map((p, i) => (i === index ? { ...p, name: e.target.value } : p)))} className={inputClass} placeholder="Grand prize" />
                 </Field>
@@ -380,7 +380,7 @@ export function EventForm({
 
         <Section
           step={5}
-          tone="bg-emerald-100 text-emerald-700"
+         
           title="Submission questions"
           description="Extra fields on the submission form. Answers are visible to the team, organizers and judges only."
           action={<Button type="button" variant="secondary" size="sm" onClick={() => setQuestions((prev) => [...prev, { label: "", type: "text", required: false, options: "" }])}>+ Add question</Button>}
@@ -388,7 +388,7 @@ export function EventForm({
           {questions.length === 0 ? <p className="text-sm text-zinc-500">No custom questions.</p> : null}
           <div className="space-y-4">
             {questions.map((question, index) => (
-              <div key={question.id ?? `q-${index}`} className="rounded-2xl border border-zinc-200 bg-white p-4">
+              <div key={question.id ?? `q-${index}`} className="rounded-xl border border-line bg-zinc-50/70 p-4">
                 <div className="grid gap-3 sm:grid-cols-[1fr_150px_auto] sm:items-end">
                   <Field label="Question" htmlFor={`q-label-${index}`}>
                     <input id={`q-label-${index}`} value={question.label} onChange={(e) => setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, label: e.target.value } : q)))} maxLength={300} className={inputClass} placeholder="What did you build during the event?" />
@@ -409,7 +409,7 @@ export function EventForm({
                   </Field>
                 ) : null}
                 <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700">
-                  <input type="checkbox" checked={question.required} onChange={(e) => setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, required: e.target.checked } : q)))} />
+                  <input className="h-4 w-4 accent-ink" type="checkbox" checked={question.required} onChange={(e) => setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, required: e.target.checked } : q)))} />
                   Required to submit (drafts can leave it empty)
                 </label>
               </div>
@@ -426,10 +426,25 @@ export function EventForm({
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">Preview</p>
-          <h3 className="font-display mt-2 text-xl font-semibold text-ink">{name.trim() || "Untitled event"}</h3>
-          <dl className="mt-5 space-y-3 text-sm">
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white">
+          <div aria-hidden className="graph-paper-dark absolute inset-0" />
+          <div className="relative">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">Poster preview</p>
+              {dates.submissions_close ? (
+                <Countdown to={fromLocalInput(dates.submissions_close)} tone="dark" />
+              ) : null}
+            </div>
+            <h3 className="font-display mt-4 text-xl leading-snug font-semibold break-words">
+              {name.trim() || "Untitled event"}
+            </h3>
+            {shortDescription.trim() ? (
+              <p className="mt-2 line-clamp-2 text-sm text-white/65">{shortDescription}</p>
+            ) : null}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-line bg-white p-5">
+          <dl className="space-y-3 text-sm">
             <PreviewRow label="Visibility" value={published ? "Published" : "Hidden"} />
             <PreviewRow label="Registration" value={dates.registration_opens ? formatDateTime(fromLocalInput(dates.registration_opens)) : "Open now"} />
             <PreviewRow label="Deadline" value={formatDateTime(fromLocalInput(dates.submissions_close))} />
@@ -439,12 +454,12 @@ export function EventForm({
             <PreviewRow label="Team size" value={`1–${maxTeamSize}`} />
           </dl>
         </div>
-        <div className="hidden rounded-2xl border border-zinc-200 bg-zinc-950 p-5 text-white shadow-sm lg:block">
-          <p className="text-sm text-zinc-400">
+        <div className="hidden rounded-2xl border border-line bg-white p-5 lg:block">
+          <p className="text-sm text-zinc-500">
             {mode === "edit" ? "Changes apply immediately, including deadline changes." : "You can edit everything after creating the event."}
           </p>
           <Button type="submit" disabled={saving} className="mt-5 w-full">{submitLabel}</Button>
-          <ButtonLink href="/organizer/dashboard" variant="ghost" className="mt-2 w-full text-zinc-300 hover:bg-white/10 hover:text-white">
+          <ButtonLink href="/organizer/dashboard" variant="ghost" className="mt-2 w-full">
             Cancel
           </ButtonLink>
         </div>
@@ -455,24 +470,22 @@ export function EventForm({
 
 function Section({
   step,
-  tone,
   title,
   description,
   action,
   children,
 }: {
   step: number;
-  tone: string;
   title: string;
   description: string;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="overflow-hidden rounded-2xl border border-line bg-white">
+      <div className="flex flex-col gap-4 border-b border-line px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${tone}`}>{step}</span>
+          <span className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink text-sm font-semibold text-signal-300">{step}</span>
           <div>
             <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
             <p className="text-sm text-zinc-500">{description}</p>
@@ -500,7 +513,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-semibold text-zinc-700">{label}</label>
+      <label htmlFor={htmlFor} className="field-label">{label}</label>
       {children}
       {hint ? <p className="mt-1.5 text-xs text-zinc-400">{hint}</p> : null}
     </div>
@@ -539,8 +552,8 @@ function IconButton({
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <dt className="text-zinc-500">{label}</dt>
-      <dd className="text-right font-semibold text-zinc-900">{value}</dd>
+      <dt className="font-mono text-[11px] tracking-[0.12em] text-zinc-500 uppercase">{label}</dt>
+      <dd className="text-right font-semibold text-ink">{value}</dd>
     </div>
   );
 }

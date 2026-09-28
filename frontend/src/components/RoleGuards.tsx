@@ -29,7 +29,7 @@ export function SubmitProjectCta({
   if (user === undefined) {
     return (
       <span
-        className={`inline-flex h-10 w-32 animate-pulse rounded-xl bg-white/20 ${className}`}
+        className={`inline-flex h-10 w-32 animate-pulse rounded-lg bg-zinc-200/70 ${className}`}
       />
     );
   }
@@ -80,20 +80,21 @@ function GateAside({
   items: { title: string; body: string }[];
 }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-      <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">
-        {title}
-      </p>
-      <div className="mt-6 grid gap-4">
-        {items.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-xl border border-zinc-100 bg-canvas p-4"
-          >
-            <p className="font-semibold text-zinc-900">{item.title}</p>
-            <p className="mt-1 text-sm text-zinc-500">{item.body}</p>
-          </div>
-        ))}
+    <div className="relative h-full overflow-hidden rounded-2xl bg-ink p-6 text-white sm:p-8">
+      <div aria-hidden className="graph-paper-dark absolute inset-0" />
+      <div className="relative">
+        <p className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">{title}</p>
+        <ul className="mt-6 space-y-5">
+          {items.map((item) => (
+            <li key={item.title} className="flex gap-3">
+              <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-[3px] bg-signal-300" />
+              <div>
+                <p className="font-semibold">{item.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-white/60">{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -118,7 +119,7 @@ export function ParticipantGate({
   if (user === undefined) {
     return (
       <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
       </div>
     );
   }
@@ -162,9 +163,7 @@ export function ParticipantGate({
       }
     >
       <div className="space-y-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-xl">
-          🔒
-        </div>
+        <LockTile />
         <div className="flex flex-wrap gap-3">
           {isVisitor ? (
             <>
@@ -178,9 +177,9 @@ export function ParticipantGate({
             </>
           ) : (
             <>
-            <ButtonLink href={loginHref("/participant", "participant")}>
-              Sign in as participant
-            </ButtonLink>
+              <ButtonLink href={loginHref("/participant", "participant")}>
+                Sign in as participant
+              </ButtonLink>
               <ButtonLink href="/register?redirect=/events" variant="secondary">
                 Create account
               </ButtonLink>
@@ -192,7 +191,7 @@ export function ParticipantGate({
             Tip: use the{" "}
             <Link
               href="/login?redirect=/participant&mode=participant"
-              className="font-semibold text-zinc-900 hover:underline"
+              className="font-semibold text-brand-600 underline-offset-4 hover:underline"
             >
               participant sign-in
             </Link>{" "}
@@ -216,7 +215,7 @@ export function OrganizerGate({ children }: { children: React.ReactNode }) {
   if (user === undefined) {
     return (
       <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
       </div>
     );
   }
@@ -255,9 +254,7 @@ export function OrganizerGate({ children }: { children: React.ReactNode }) {
       }
     >
       <div className="space-y-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-xl">
-          🔒
-        </div>
+        <LockTile />
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={loginHref("/organizer/dashboard", "organizer")}>
             Sign in as organizer
@@ -288,4 +285,15 @@ export function OrganizerOnly({
   if (user === undefined) return null;
   if (user && ORGANIZER_ROLES.has(user.role)) return <>{children}</>;
   return <>{fallback}</>;
+}
+
+function LockTile() {
+  return (
+    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink text-signal-300">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="4" y="11" width="16" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+    </div>
+  );
 }

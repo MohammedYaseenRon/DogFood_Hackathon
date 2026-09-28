@@ -23,7 +23,7 @@ export function AuthPageLayout({
       <div aria-hidden className="graph-paper absolute inset-x-0 top-0 h-80" />
       <div className="relative mx-auto max-w-6xl px-5 pt-12 sm:px-6 lg:pt-16">
         <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-          <section className="rounded-2xl border border-line bg-white p-6 sm:p-10 lg:col-span-7">
+          <section className="rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(21,19,43,0.04),0_12px_32px_-16px_rgba(21,19,43,0.18)] sm:p-10 lg:col-span-7">
             <Eyebrow>Account</Eyebrow>
             <h1 className="font-display mt-4 text-[1.9rem] leading-tight font-semibold text-ink sm:text-4xl">
               <MarkedTitle text={title} />
@@ -34,7 +34,16 @@ export function AuthPageLayout({
             <div className="mt-8">{children}</div>
             {footer ? <div className="mt-8">{footer}</div> : null}
           </section>
-          {aside ? <aside className="lg:col-span-5">{aside}</aside> : null}
+          {aside ? (
+            <aside className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white sm:p-8 lg:col-span-5">
+              <div aria-hidden className="graph-paper-dark absolute inset-0" />
+              <div
+                aria-hidden
+                className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-brand-600/30 blur-3xl"
+              />
+              <div className="relative flex h-full flex-col">{aside}</div>
+            </aside>
+          ) : null}
         </div>
       </div>
     </main>

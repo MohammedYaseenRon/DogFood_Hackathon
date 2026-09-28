@@ -14,13 +14,12 @@ export default async function NewTeamPage({ searchParams }: Props) {
   return (
     <ParticipantGate allowVisitors>
       <PageShell
-        tone="amber"
         eyebrow="Team formation"
         title="Create a team"
         description="Start a team, then invite teammates with a secure link."
         maxWidth="max-w-3xl"
       >
-        <Card variant="elevated">
+        <Card className="p-6 sm:p-8">
           <CreateTeamForm events={events} defaultEvent={event} />
         </Card>
         <div className="mt-4">

@@ -33,7 +33,6 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
   return (
     <PageShell
-      tone="violet"
       eyebrow={[project.event?.name, project.trackName].filter(Boolean).join(" · ")}
       title={project.title || "Untitled project"}
       description={project.tagline ?? undefined}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Eyebrow } from "@/components/ui/MarkedTitle";
 import { CredentialAuthForm } from "@/components/CredentialAuthForm";
 import {
   ROLE_AUTH,
@@ -53,18 +54,18 @@ export function RoleSignInPanel({
     <div className="space-y-6">
       {showEmail ? (
         <>
-          <p className="text-sm font-semibold text-zinc-800">Sign in with email</p>
-          <CredentialAuthForm
-            mode="login"
-            redirectTo={target}
-            expectedRole={config.role}
-          />
+          <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">
+            Sign in with email
+          </p>
+          <CredentialAuthForm mode="login" redirectTo={target} expectedRole={config.role} />
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-200" />
+              <div className="w-full border-t border-line" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-zinc-400">Or demo access</span>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 font-mono text-[11px] tracking-[0.14em] text-zinc-400 uppercase">
+                Or demo access
+              </span>
             </div>
           </div>
         </>
@@ -74,18 +75,18 @@ export function RoleSignInPanel({
         type="button"
         onClick={() => void demoLogin()}
         disabled={loading}
-        className={`group flex w-full items-center gap-4 rounded-xl border border-zinc-200 bg-canvas p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
+        className={`group flex w-full items-center gap-4 rounded-xl border border-line bg-canvas p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
       >
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${config.iconBg} text-sm font-bold text-white`}
+          className={`font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${config.iconBg} text-sm font-semibold text-white`}
         >
           {config.icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-zinc-900">Demo {config.label.toLowerCase()}</p>
+          <p className="font-semibold text-ink">Demo {config.label.toLowerCase()}</p>
           <p className="text-sm text-zinc-500">{config.description}</p>
         </div>
-        <span className="text-zinc-400 group-hover:text-zinc-700">
+        <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-ink">
           {loading ? "…" : "→"}
         </span>
       </button>
@@ -95,7 +96,7 @@ export function RoleSignInPanel({
           New here?{" "}
           <Link
             href={registerHref("/events", "participant")}
-            className="font-semibold text-zinc-900 hover:underline"
+            className="font-semibold text-brand-600 underline-offset-4 hover:underline"
           >
             Create account
           </Link>
@@ -107,8 +108,11 @@ export function RoleSignInPanel({
         <p className="text-center text-sm text-zinc-500">
           Email accounts start as visitors. Use the demo button above for{" "}
           {config.label.toLowerCase()} tools, or{" "}
-          <Link href="/login" className="font-semibold text-zinc-900 hover:underline">
-            full login
+          <Link
+            href="/login"
+            className="font-semibold text-brand-600 underline-offset-4 hover:underline"
+          >
+            see all sign-in options
           </Link>
           .
         </p>
@@ -120,6 +124,7 @@ export function RoleSignInPanel({
   );
 }
 
+/** Demo sign-in tiles for the register page; rendered inside the ink aside. */
 export function RegisterDemoRoles({
   redirectTo,
   selectedMode,
@@ -155,15 +160,16 @@ export function RegisterDemoRoles({
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">
-          Demo access
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Skip registration and explore instantly with a seeded role.
+      <div className="mb-6">
+        <Eyebrow dark>Demo access</Eyebrow>
+        <h2 className="font-display mt-5 text-2xl leading-tight font-semibold">
+          Or skip the <span className="hl hl-solid">form</span>
+        </h2>
+        <p className="mt-3 text-sm text-white/65">
+          Explore instantly with a seeded account for any role.
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3">
         {modes.map((mode) => {
           const config = ROLE_AUTH[mode];
           return (
@@ -172,17 +178,20 @@ export function RegisterDemoRoles({
               type="button"
               onClick={() => void demoLogin(mode)}
               disabled={loading !== null}
-              className={`flex items-start gap-3 rounded-xl border border-zinc-200 bg-canvas p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
+              className="group flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left transition hover:border-white/25 hover:bg-white/[0.08] disabled:opacity-60"
             >
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${config.iconBg} text-sm font-bold text-white`}
+                className={`font-display flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${config.iconBg === "bg-ink" ? "bg-white/10" : config.iconBg} text-sm font-semibold text-white ring-1 ring-white/15 ring-inset`}
               >
                 {config.icon}
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-zinc-900">{config.label}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">{config.description}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{config.label}</p>
+                <p className="mt-0.5 text-xs text-white/60">{config.description}</p>
               </div>
+              <span className="mt-1 text-white/30 transition group-hover:text-signal-300">
+                {loading === mode ? "…" : "→"}
+              </span>
             </button>
           );
         })}

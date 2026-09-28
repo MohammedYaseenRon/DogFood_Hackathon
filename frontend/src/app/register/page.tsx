@@ -21,28 +21,28 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           : "Join hackathons, form teams, and submit projects."
       }
       aside={
-        <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <>
           <RegisterDemoRoles redirectTo={redirect} selectedMode={roleMode ?? undefined} />
-          <p className="mt-8 border-t border-zinc-100 pt-6 text-sm text-zinc-400">
+          <p className="mt-auto border-t border-white/10 pt-6 text-sm text-white/50">
             Already registered?{" "}
             <Link
               href={`/login${buildQuery(redirect, roleMode)}`}
-              className="font-medium text-zinc-700 hover:underline"
+              className="font-semibold text-white underline-offset-4 hover:underline"
             >
               Sign in
             </Link>
           </p>
-        </div>
+        </>
       }
     >
-      <p className="mb-5 text-sm font-semibold text-zinc-800">Your details</p>
+      <p className="mb-5 font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">Your details</p>
       <CredentialAuthForm
         mode="register"
         redirectTo={redirect}
         roleMode={roleMode ?? undefined}
       />
       <p className="mt-6 text-sm text-zinc-500">
-        Accounts are created as <strong className="text-zinc-700">visitors</strong>.
+        Accounts are created as <strong className="font-semibold text-ink">visitors</strong>.
         Register for a hackathon to become a participant, or pick a demo role on
         the right.
       </p>

@@ -98,13 +98,17 @@ export function AdminDashboard() {
   }
 
   if (allowed === null) {
-    return <p className="text-zinc-500">Loading admin dashboard…</p>;
+    return (
+      <div className="flex justify-center py-16">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-ink" />
+      </div>
+    );
   }
 
   if (!allowed) {
     return (
       <Card variant="elevated" className="mx-auto max-w-lg text-center">
-        <p className="font-display text-lg font-semibold text-zinc-900">Admin access required</p>
+        <p className="font-display text-lg font-semibold text-ink">Admin access required</p>
         <p className="mt-2 text-sm text-zinc-500">Sign in with an admin account to manage users.</p>
         <ButtonLink href={loginHref("/admin", "admin")} className="mt-5">
           Sign in as admin
@@ -116,7 +120,9 @@ export function AdminDashboard() {
   return (
     <div className="space-y-8">
       {stats ? (
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="relative overflow-hidden rounded-2xl bg-ink text-white">
+          <div aria-hidden className="graph-paper-dark absolute inset-0" />
+          <dl className="relative grid grid-cols-2 divide-white/10 sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
           {[
             { label: "Users", value: stats.users },
             { label: "Participants", value: stats.participants },
@@ -125,26 +131,29 @@ export function AdminDashboard() {
             { label: "Events", value: stats.events },
             { label: "Submitted", value: stats.submitted, hint: `${stats.drafts} drafts` },
           ].map((item) => (
-            <Card key={item.label} variant="elevated" className="p-5">
-              <p className="text-sm text-zinc-500">{item.label}</p>
-              <p className="font-display mt-1 text-3xl font-semibold text-zinc-900">{item.value}</p>
-              {item.hint ? <p className="text-xs text-zinc-400">{item.hint}</p> : null}
-            </Card>
+            <div key={item.label} className="border-b border-white/10 px-6 py-5 lg:border-b-0">
+              <dt className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">{item.label}</dt>
+              <dd className="font-display mt-2 text-3xl font-semibold tabular-nums">{item.value}</dd>
+              {item.hint ? <dd className="mt-1 text-xs text-signal-300">{item.hint}</dd> : null}
+            </div>
           ))}
+          </dl>
         </div>
       ) : null}
 
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="flex gap-2 border-b border-zinc-200">
+      <div role="tablist" className="inline-flex rounded-lg border border-line bg-white p-1">
         {(["users", "audit"] as const).map((key) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
-              tab === key ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-800"
+            role="tab"
+            aria-selected={tab === key}
+            className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+              tab === key ? "bg-ink text-white" : "text-zinc-500 hover:text-ink"
             }`}
           >
             {key === "users" ? "Users" : "Audit log"}
@@ -155,7 +164,7 @@ export function AdminDashboard() {
       {tab === "users" ? (
         <Card variant="elevated" className="overflow-hidden p-0">
           <form
-            className="flex flex-wrap items-center gap-3 border-b border-zinc-100 px-6 py-4"
+            className="flex flex-wrap items-center gap-3 border-b border-line bg-zinc-50/60 px-6 py-4"
             onSubmit={(e) => {
               e.preventDefault();
               void loadUsers(query, roleFilter);
@@ -167,7 +176,7 @@ export function AdminDashboard() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name or email"
-              className="min-w-[14rem] flex-1 rounded-xl border border-zinc-200 px-4 py-2 text-sm focus:border-zinc-400 focus:outline-none"
+              className="field min-w-[14rem] flex-1 py-2"
             />
             <select
               aria-label="Filter by role"
@@ -176,7 +185,7 @@ export function AdminDashboard() {
                 setRoleFilter(e.target.value);
                 void loadUsers(query, e.target.value);
               }}
-              className="rounded-xl border border-zinc-200 px-3 py-2 text-sm"
+              className="field w-auto py-2"
             >
               <option value="">All roles</option>
               {ROLES.map((role) => (
@@ -188,32 +197,39 @@ export function AdminDashboard() {
             <Button type="submit" size="sm">
               Search
             </Button>
-            <span className="text-sm text-zinc-500">
-              {users.length} of {total}
+            <span className="font-mono text-xs text-zinc-500">
+              {users.length} / {total}
             </span>
           </form>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-zinc-500">
+              <thead className="border-b border-line text-left font-mono text-[11px] tracking-[0.12em] text-zinc-500 uppercase">
                 <tr>
-                  <th className="px-6 py-3 font-semibold">User</th>
-                  <th className="px-6 py-3 font-semibold">Role</th>
-                  <th className="px-6 py-3 font-semibold">Status</th>
-                  <th className="px-6 py-3 font-semibold">Joined</th>
-                  <th className="px-6 py-3 font-semibold">Actions</th>
+                  <th className="px-6 py-3 font-medium">User</th>
+                  <th className="px-6 py-3 font-medium">Role</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 font-medium">Joined</th>
+                  <th className="px-6 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => {
                   const self = user.id === meId;
                   return (
-                    <tr key={user.id} className="border-t border-zinc-100">
+                    <tr key={user.id} className="border-t border-line transition hover:bg-zinc-50/70">
                       <td className="px-6 py-3">
-                        <p className="font-medium text-zinc-900">
-                          {user.name || "—"}
-                          {self ? <span className="ml-1.5 text-xs text-zinc-400">(you)</span> : null}
-                        </p>
-                        <p className="text-xs text-zinc-500">{user.email}</p>
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-600">
+                            {(user.name || user.email).charAt(0).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-ink">
+                              {user.name || "—"}
+                              {self ? <span className="ml-2 align-middle"><Badge tone="cyan">you</Badge></span> : null}
+                            </p>
+                            <p className="text-xs text-zinc-500">{user.email}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-3">
                         <select
@@ -221,7 +237,7 @@ export function AdminDashboard() {
                           value={user.role}
                           disabled={self || actionId === user.id}
                           onChange={(e) => void changeRole(user, e.target.value as UserRole)}
-                          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold"
+                          className="field w-auto px-2.5 py-1.5 font-mono text-xs"
                         >
                           {ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -258,21 +274,21 @@ export function AdminDashboard() {
         <Card variant="elevated" className="overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-zinc-500">
+              <thead className="border-b border-line text-left font-mono text-[11px] tracking-[0.12em] text-zinc-500 uppercase">
                 <tr>
-                  <th className="px-6 py-3 font-semibold">When</th>
-                  <th className="px-6 py-3 font-semibold">Actor</th>
-                  <th className="px-6 py-3 font-semibold">Action</th>
-                  <th className="px-6 py-3 font-semibold">Resource</th>
+                  <th className="px-6 py-3 font-medium">When</th>
+                  <th className="px-6 py-3 font-medium">Actor</th>
+                  <th className="px-6 py-3 font-medium">Action</th>
+                  <th className="px-6 py-3 font-medium">Resource</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-t border-zinc-100 align-top">
+                  <tr key={log.id} className="border-t border-line align-top transition hover:bg-zinc-50/70">
                     <td className="px-6 py-3 whitespace-nowrap text-zinc-500">{formatDateTime(log.createdAt)}</td>
-                    <td className="px-6 py-3 text-zinc-700">{log.actorEmail ?? "system"}</td>
+                    <td className="px-6 py-3 font-medium text-ink">{log.actorEmail ?? "system"}</td>
                     <td className="px-6 py-3">
-                      <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">{log.action}</code>
+                      <code className="rounded-md bg-brand-50 px-1.5 py-0.5 font-mono text-xs text-brand-700">{log.action}</code>
                     </td>
                     <td className="px-6 py-3 text-xs text-zinc-500">
                       {log.resourceType}

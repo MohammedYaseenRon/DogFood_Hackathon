@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LoginDemoRoles, LoginPanel } from "@/components/LoginPanel";
 import { RoleSignInPanel } from "@/components/RoleSignInPanel";
 import { AuthPageLayout } from "@/components/ui/AuthPageLayout";
+import { Eyebrow } from "@/components/ui/MarkedTitle";
 import {
   ROLE_AUTH,
   resolveLoginMode,
@@ -64,43 +65,32 @@ const ROLE_ASIDE: Record<
 
 function RoleAside({ roleMode }: { roleMode: RoleMode }) {
   const aside = ROLE_ASIDE[roleMode];
-  const accent =
-    roleMode === "participant"
-      ? "text-amber-600"
-      : roleMode === "judge"
-        ? "text-emerald-600"
-        : "text-zinc-600";
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-      <div>
-        <p className={`text-xs font-bold tracking-[0.16em] uppercase ${accent}`}>
-          {aside.eyebrow}
-        </p>
-        <h2 className="font-display mt-2 text-2xl font-semibold text-zinc-900">
-          {aside.title}
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-500">
-          {aside.description}
-        </p>
-        <ul className="mt-6 space-y-3 text-sm text-zinc-600">
-          {aside.bullets.map((item) => (
-            <li key={item} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
-                ✓
-              </span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <p className="mt-8 text-sm text-zinc-400">
+    <>
+      <Eyebrow dark>{aside.eyebrow}</Eyebrow>
+      <h2 className="font-display mt-5 text-2xl leading-tight font-semibold sm:text-3xl">
+        <span className="hl hl-solid">{aside.title}</span>
+      </h2>
+      <p className="mt-4 text-sm leading-relaxed text-white/70">{aside.description}</p>
+      <ul className="mt-8 space-y-3 text-sm text-white/85">
+        {aside.bullets.map((item) => (
+          <li key={item} className="flex items-start gap-3">
+            <span
+              aria-hidden
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-[3px] bg-signal-300"
+            />
+            {item}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-auto pt-10 text-sm text-white/50">
         Need a different role?{" "}
-        <Link href="/login" className="font-medium text-zinc-700 hover:underline">
-          Full login
+        <Link href="/login" className="font-semibold text-white underline-offset-4 hover:underline">
+          See all sign-in options
         </Link>
       </p>
-    </div>
+    </>
   );
 }
 

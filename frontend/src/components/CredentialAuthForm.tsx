@@ -71,13 +71,13 @@ export function CredentialAuthForm({
   }
 
   const inputClass =
-    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100";
+    "field";
 
   return (
     <form onSubmit={submit} className="space-y-4">
       {mode === "register" ? (
         <div>
-          <label className="mb-2 block text-sm font-semibold text-zinc-700">
+          <label className="field-label">
             Full name
           </label>
           <input
@@ -91,7 +91,7 @@ export function CredentialAuthForm({
       ) : null}
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label className="field-label">
           Email
         </label>
         <input
@@ -105,7 +105,7 @@ export function CredentialAuthForm({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label className="field-label">
           Password
         </label>
         <input
@@ -135,7 +135,7 @@ export function CredentialAuthForm({
             No account?{" "}
             <Link
               href={`/register${buildAuthQuery(redirectTo, roleMode)}`}
-              className="font-semibold text-zinc-900 hover:underline"
+              className="font-semibold text-brand-600 underline-offset-4 hover:underline"
             >
               Register
             </Link>
@@ -145,7 +145,7 @@ export function CredentialAuthForm({
             Already have an account?{" "}
             <Link
               href={`/login${buildAuthQuery(redirectTo, roleMode)}`}
-              className="font-semibold text-zinc-900 hover:underline"
+              className="font-semibold text-brand-600 underline-offset-4 hover:underline"
             >
               Sign in
             </Link>

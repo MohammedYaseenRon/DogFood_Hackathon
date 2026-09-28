@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
-import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
@@ -13,8 +12,7 @@ import {
 } from "@/lib/api";
 import { homeForRole, loginHref } from "@/lib/role-auth";
 
-const inputClass =
-  "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100";
+const inputClass = "field";
 
 export function AccountSettings() {
   const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
@@ -46,7 +44,7 @@ export function AccountSettings() {
   if (!user) {
     return (
       <Card variant="elevated" className="mx-auto max-w-lg text-center">
-        <p className="font-display text-lg font-semibold text-zinc-900">Sign in to manage your account</p>
+        <p className="font-display text-lg font-semibold text-ink">Sign in to manage your account</p>
         <ButtonLink href={loginHref("/account")} className="mt-5">
           Sign in
         </ButtonLink>
@@ -96,10 +94,10 @@ export function AccountSettings() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
         <Card variant="elevated">
-          <h2 className="font-display text-lg font-semibold text-zinc-900">Profile</h2>
+          <SectionHead title="Profile" hint="How you appear to teammates and judges." />
           <form onSubmit={saveProfile} className="mt-5 space-y-4">
             <div>
-              <label htmlFor="account-name" className="mb-2 block text-sm font-semibold text-zinc-700">
+              <label htmlFor="account-name" className="field-label">
                 Display name
               </label>
               <input
@@ -113,8 +111,8 @@ export function AccountSettings() {
               <p className="mt-2 text-xs text-zinc-400">Shown to teammates and on your project page.</p>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-zinc-700">Email</label>
-              <input value={user.email} disabled className={`${inputClass} bg-zinc-50 text-zinc-500`} />
+              <label className="field-label">Email</label>
+              <input value={user.email} disabled className={inputClass} />
             </div>
             <Button type="submit" disabled={savingProfile || !name.trim()}>
               {savingProfile ? "Saving..." : "Save profile"}
@@ -124,10 +122,10 @@ export function AccountSettings() {
         </Card>
 
         <Card variant="elevated">
-          <h2 className="font-display text-lg font-semibold text-zinc-900">Password</h2>
+          <SectionHead title="Password" hint="Changing it signs out your other sessions." />
           <form onSubmit={savePassword} className="mt-5 space-y-4">
             <div>
-              <label htmlFor="pw-current" className="mb-2 block text-sm font-semibold text-zinc-700">
+              <label htmlFor="pw-current" className="field-label">
                 Current password
               </label>
               <input
@@ -142,7 +140,7 @@ export function AccountSettings() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="pw-new" className="mb-2 block text-sm font-semibold text-zinc-700">
+                <label htmlFor="pw-new" className="field-label">
                   New password
                 </label>
                 <input
@@ -157,7 +155,7 @@ export function AccountSettings() {
                 />
               </div>
               <div>
-                <label htmlFor="pw-confirm" className="mb-2 block text-sm font-semibold text-zinc-700">
+                <label htmlFor="pw-confirm" className="field-label">
                   Confirm new password
                 </label>
                 <input
@@ -181,23 +179,45 @@ export function AccountSettings() {
       </div>
 
       <aside className="space-y-4">
-        <Card>
-          <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">Signed in as</p>
-          <p className="font-display mt-2 text-lg font-semibold text-zinc-900">{user.name || user.email}</p>
-          <p className="text-sm text-zinc-500">{user.email}</p>
-          <div className="mt-3">
-            <Badge tone="brand">{user.role}</Badge>
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white lg:sticky lg:top-24">
+          <div aria-hidden className="graph-paper-dark absolute inset-0" />
+          <div className="relative">
+            <p className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">Signed in as</p>
+            <div className="mt-5 flex items-center gap-4">
+              <span className="font-display flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-signal-300 text-xl font-semibold text-ink">
+                {(user.name || user.email).charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="font-display truncate text-lg font-semibold">{user.name || user.email}</p>
+                <p className="truncate text-sm text-white/60">{user.email}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between border-t border-dashed border-white/15 pt-4">
+              <span className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">Role</span>
+              <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[11px] tracking-wide text-signal-300 uppercase">
+                {user.role}
+              </span>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-white/65">
+              {user.role === "VISITOR"
+                ? "Register for an event to become a participant."
+                : "Roles are assigned by platform admins."}
+            </p>
+            <ButtonLink href={homeForRole(user.role)} variant="signal" size="sm" className="mt-5">
+              Go to dashboard →
+            </ButtonLink>
           </div>
-          <p className="mt-4 text-sm text-zinc-500">
-            {user.role === "VISITOR"
-              ? "Register for an event to become a participant."
-              : "Roles are assigned by platform admins."}
-          </p>
-          <ButtonLink href={homeForRole(user.role)} variant="secondary" size="sm" className="mt-4">
-            Go to dashboard
-          </ButtonLink>
-        </Card>
+        </div>
       </aside>
+    </div>
+  );
+}
+
+function SectionHead({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="border-b border-line pb-4">
+      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+      <p className="mt-1 text-sm text-zinc-500">{hint}</p>
     </div>
   );
 }
