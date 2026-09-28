@@ -45,7 +45,7 @@ function defaultPrizes(): PrizeRow[] {
 }
 
 const inputClass =
-  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10";
+  "relative z-10 w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100";
 
 export function EventForm({
   mode,
@@ -180,7 +180,7 @@ export function EventForm({
         <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-100 px-6 py-5">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-sm font-bold text-zinc-700">
                 1
               </span>
               <div>

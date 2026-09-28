@@ -11,9 +11,14 @@ type Mode = "login" | "register";
 export function CredentialAuthForm({
   mode,
   redirectTo,
+  expectedRole,
+  roleMode,
 }: {
   mode: Mode;
   redirectTo?: string;
+  /** When set, email login must match this role or show an error. */
+  expectedRole?: string;
+  roleMode?: string;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -48,11 +53,28 @@ export function CredentialAuthForm({
     }
 
     const role = data?.user?.role as string | undefined;
+
+    if (expectedRole && role && role !== expectedRole) {
+      setError(
+        `Your account is a ${role}. Email login cannot switch roles — use the demo ${expectedRole.toLowerCase()} button instead.`,
+      );
+      return;
+    }
+
     let next = redirectTo;
     if (next === "/participant" && role && role !== "PARTICIPANT") {
       next = "/events";
     }
     if (next === "/projects/new" && role && role !== "PARTICIPANT") {
+      next = "/events";
+    }
+    if (next?.startsWith("/organizer") && role && role !== "ORGANIZER" && role !== "ADMIN") {
+      next = "/events";
+    }
+    if (next?.startsWith("/judging") && role && role !== "JUDGE") {
+      next = "/events";
+    }
+    if (next?.startsWith("/admin") && role && role !== "ADMIN") {
       next = "/events";
     }
 
@@ -133,8 +155,8 @@ export function CredentialAuthForm({
           <>
             No account?{" "}
             <Link
-              href={`/register${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
-              className="font-semibold text-[#3770FF] hover:text-blue-700"
+              href={`/register${buildAuthQuery(redirectTo, roleMode)}`}
+              className="font-semibold text-zinc-900 hover:underline"
             >
               Register
             </Link>
@@ -143,8 +165,8 @@ export function CredentialAuthForm({
           <>
             Already have an account?{" "}
             <Link
-              href={`/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
-              className="font-semibold text-[#3770FF] hover:text-blue-700"
+              href={`/login${buildAuthQuery(redirectTo, roleMode)}`}
+              className="font-semibold text-zinc-900 hover:underline"
             >
               Sign in
             </Link>
@@ -153,4 +175,12 @@ export function CredentialAuthForm({
       </p>
     </form>
   );
+}
+
+function buildAuthQuery(redirectTo?: string, roleMode?: string) {
+  const params = new URLSearchParams();
+  if (redirectTo) params.set("redirect", redirectTo);
+  if (roleMode) params.set("mode", roleMode);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }

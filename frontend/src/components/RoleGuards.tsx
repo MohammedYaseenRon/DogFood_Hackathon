@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchMeClient, type UserInfo } from "@/lib/api";
 import { ButtonLink } from "@/components/ui/Button";
+import { FormPageLayout } from "@/components/ui/FormPageLayout";
+import { loginHref } from "@/lib/role-auth";
 
 /** Submit CTA that only shows for participants; others get a clear next step. */
 export function SubmitProjectCta({
@@ -61,6 +63,33 @@ export function SubmitProjectCta({
   );
 }
 
+function GateAside({
+  title,
+  items,
+}: {
+  title: string;
+  items: { title: string; body: string }[];
+}) {
+  return (
+    <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+      <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">
+        {title}
+      </p>
+      <div className="mt-6 grid gap-4">
+        {items.map((item) => (
+          <div
+            key={item.title}
+            className="rounded-xl border border-zinc-100 bg-[#fafafa] p-4"
+          >
+            <p className="font-semibold text-zinc-900">{item.title}</p>
+            <p className="mt-1 text-sm text-zinc-500">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ParticipantGate({
   children,
   eventHref = "/events",
@@ -77,7 +106,7 @@ export function ParticipantGate({
   if (user === undefined) {
     return (
       <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
       </div>
     );
   }
@@ -89,47 +118,74 @@ export function ParticipantGate({
   const isVisitor = user?.role === "VISITOR" || Boolean(user);
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-8 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
-        🔒
-      </div>
-      <h2 className="font-display mt-4 text-xl font-bold text-zinc-900">
-        {isVisitor ? "Become a participant first" : "Sign in required"}
-      </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
-        {isVisitor
+    <FormPageLayout
+      eyebrow="Submission"
+      title={isVisitor ? "Become a participant first" : "Sign in required"}
+      description={
+        isVisitor
           ? "You're signed in, but visitors can't submit projects. Register for a hackathon to unlock participant access."
-          : "Sign in as a participant (or create an account and register for an event) to submit a project."}
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        {isVisitor ? (
-          <>
-            <ButtonLink href={eventHref}>Register for a hackathon</ButtonLink>
-            <ButtonLink href="/login?redirect=/participant&mode=participant" variant="secondary">
-              Switch to demo participant
-            </ButtonLink>
-          </>
-        ) : (
-          <>
-            <ButtonLink href="/login?redirect=/participant&mode=participant">
+          : "Sign in as a participant to create or edit your team's hackathon submission."
+      }
+      aside={
+        <GateAside
+          title="What you need"
+          items={[
+            {
+              title: "Participant account",
+              body: "Register for an open hackathon or use the demo participant role.",
+            },
+            {
+              title: "Join a team",
+              body: "Create or join a team before submitting your project.",
+            },
+            {
+              title: "Submit before deadline",
+              body: "Save drafts and submit your final project before submissions close.",
+            },
+          ]}
+        />
+      }
+    >
+      <div className="space-y-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-xl">
+          🔒
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {isVisitor ? (
+            <>
+              <ButtonLink href={eventHref}>Register for a hackathon</ButtonLink>
+              <ButtonLink
+                href={loginHref("/participant", "participant")}
+                variant="secondary"
+              >
+                Demo participant
+              </ButtonLink>
+            </>
+          ) : (
+            <>
+            <ButtonLink href={loginHref("/participant", "participant")}>
               Sign in as participant
             </ButtonLink>
-            <ButtonLink href="/register?redirect=/events" variant="secondary">
-              Create account
-            </ButtonLink>
-          </>
-        )}
+              <ButtonLink href="/register?redirect=/events" variant="secondary">
+                Create account
+              </ButtonLink>
+            </>
+          )}
+        </div>
+        {!isVisitor ? (
+          <p className="text-sm text-zinc-500">
+            Tip: use the{" "}
+            <Link
+              href="/login?redirect=/participant&mode=participant"
+              className="font-semibold text-zinc-900 hover:underline"
+            >
+              participant sign-in
+            </Link>{" "}
+            page for demo access.
+          </p>
+        ) : null}
       </div>
-      {!isVisitor ? (
-        <p className="mt-4 text-xs text-zinc-400">
-          Tip: use the{" "}
-          <Link href="/login?redirect=/participant&mode=participant" className="font-semibold text-zinc-900">
-            participant sign-in
-          </Link>{" "}
-          page for demo access.
-        </p>
-      ) : null}
-    </div>
+    </FormPageLayout>
   );
 }
 
@@ -145,7 +201,7 @@ export function OrganizerGate({ children }: { children: React.ReactNode }) {
   if (user === undefined) {
     return (
       <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
       </div>
     );
   }
@@ -155,27 +211,48 @@ export function OrganizerGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-8 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
-        🔒
-      </div>
-      <h2 className="font-display mt-4 text-xl font-bold text-zinc-900">
-        Organizer access required
-      </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
-        {user
+    <FormPageLayout
+      eyebrow="Organizer"
+      title="Organizer access required"
+      description={
+        user
           ? `You're signed in as ${user.role}. Only organizers and admins can manage events.`
-          : "Sign in as an organizer to create or edit hackathon settings."}
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <ButtonLink href="/login?redirect=/organizer/dashboard">
-          Sign in as organizer
-        </ButtonLink>
-        <ButtonLink href="/events" variant="secondary">
-          Back to events
-        </ButtonLink>
+          : "Sign in as an organizer to create or edit hackathon settings."
+      }
+      aside={
+        <GateAside
+          title="Organizer tools"
+          items={[
+            {
+              title: "Event setup",
+              body: "Configure hackathon name, tracks, prizes, and submission deadlines.",
+            },
+            {
+              title: "Judging ops",
+              body: "Monitor judge progress and export scoring results.",
+            },
+            {
+              title: "Demo access",
+              body: "Use the Organizer demo role on the login page for instant access.",
+            },
+          ]}
+        />
+      }
+    >
+      <div className="space-y-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-xl">
+          🔒
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={loginHref("/organizer/dashboard", "organizer")}>
+            Sign in as organizer
+          </ButtonLink>
+          <ButtonLink href="/events" variant="secondary">
+            Back to events
+          </ButtonLink>
+        </div>
       </div>
-    </div>
+    </FormPageLayout>
   );
 }
 
@@ -197,4 +274,3 @@ export function OrganizerOnly({
   if (user && ORGANIZER_ROLES.has(user.role)) return <>{children}</>;
   return <>{fallback}</>;
 }
-

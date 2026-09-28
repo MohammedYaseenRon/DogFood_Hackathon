@@ -13,8 +13,7 @@ type RoleCard = {
   role: string;
   desc: string;
   href: string;
-  gradient: string;
-  border: string;
+  iconBg: string;
   badge: "brand" | "success" | "warning" | "default";
   sessionKey: string;
 };
@@ -26,9 +25,8 @@ const PRIMARY_ROLES: RoleCard[] = [
     role: "ORGANIZER",
     desc: "Create events, monitor judging, and export results",
     href: "/organizer/dashboard",
-    gradient: "from-violet-600 to-indigo-600",
-    border: "hover:border-violet-300",
-    badge: "brand",
+    iconBg: "bg-zinc-900",
+    badge: "default",
     sessionKey: "org_7f2a",
   },
   {
@@ -37,8 +35,7 @@ const PRIMARY_ROLES: RoleCard[] = [
     role: "PARTICIPANT",
     desc: "Join a team, submit projects, and edit until the deadline",
     href: "/participant",
-    gradient: "from-amber-500 to-orange-600",
-    border: "hover:border-amber-300",
+    iconBg: "bg-orange-500",
     badge: "warning",
     sessionKey: "prt_2e88",
   },
@@ -48,8 +45,7 @@ const PRIMARY_ROLES: RoleCard[] = [
     role: "ADMIN",
     desc: "Full platform access including event setup",
     href: "/admin",
-    gradient: "from-zinc-700 to-zinc-900",
-    border: "hover:border-zinc-400",
+    iconBg: "bg-zinc-700",
     badge: "default",
     sessionKey: "adm_3c91",
   },
@@ -74,6 +70,17 @@ const ALL_SESSIONS = [
 ];
 
 export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
+  return (
+    <div>
+      <p className="mb-5 text-sm font-semibold text-zinc-800">
+        Sign in with email
+      </p>
+      <CredentialAuthForm mode="login" redirectTo={redirectTo} />
+    </div>
+  );
+}
+
+export function LoginDemoRoles({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,69 +113,67 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
   }
 
   return (
-    <div className="space-y-6">
-      <CredentialAuthForm mode="login" redirectTo={redirectTo} />
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-zinc-200" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-3 text-zinc-400">Or use demo roles</span>
-        </div>
+    <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-6">
+        <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">
+          Demo access
+        </p>
+        <h2 className="font-display mt-1 text-xl font-bold text-zinc-900">
+          Pick a role to explore
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Instant sign-in with seeded accounts — no password needed.
+        </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {PRIMARY_ROLES.map((role) => (
           <button
             key={role.id}
             type="button"
             onClick={() => login(role.sessionKey, role.label, role.href)}
             disabled={loading !== null}
-            className={`group flex w-full items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md ${role.border} disabled:opacity-60`}
+            className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-[#fafafa] p-4 text-left transition hover:border-zinc-300 hover:bg-white hover:shadow-sm disabled:opacity-60"
           >
             <div
-              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${role.gradient} text-xl font-bold text-white shadow-md transition group-hover:scale-105`}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${role.iconBg} text-sm font-bold text-white`}
             >
               {role.label.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display text-lg font-bold text-zinc-900">
-                  {role.label}
-                </span>
+                <span className="font-semibold text-zinc-900">{role.label}</span>
                 <Badge tone={role.badge}>{role.role}</Badge>
               </div>
-              <p className="mt-1 text-sm text-zinc-500">{role.desc}</p>
+              <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                {role.desc}
+              </p>
             </div>
-            <span className="shrink-0 text-zinc-300 transition group-hover:text-[#3770FF]">
+            <span className="mt-1 shrink-0 text-zinc-300 transition group-hover:text-zinc-700">
               {loading === role.sessionKey ? (
-                <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[#3770FF] border-t-transparent" />
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
               ) : (
-                <ArrowIcon />
+                "→"
               )}
             </span>
           </button>
         ))}
 
-        {/* Judge — expandable */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-[#fafafa] sm:col-span-2">
           <button
             type="button"
             onClick={() => setJudgeExpanded((v) => !v)}
-            className="group flex w-full items-center gap-4 p-5 text-left transition hover:bg-zinc-50"
+            className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-white"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-xl font-bold text-white shadow-md">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
               J
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display text-lg font-bold text-zinc-900">
-                  Judge
-                </span>
+                <span className="font-semibold text-zinc-900">Judge</span>
                 <Badge tone="success">JUDGE</Badge>
               </div>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-xs text-zinc-500">
                 Score assigned projects with backend-enforced isolation
               </p>
             </div>
@@ -176,7 +181,7 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
           </button>
 
           {judgeExpanded ? (
-            <div className="border-t border-zinc-100 bg-zinc-50/50 px-5 py-3">
+            <div className="border-t border-zinc-100 bg-white px-4 py-2">
               {JUDGE_OPTIONS.map((judge) => (
                 <button
                   key={judge.sessionKey}
@@ -185,7 +190,7 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
                     login(judge.sessionKey, judge.label, "/judging")
                   }
                   disabled={loading !== null}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition hover:bg-white disabled:opacity-60"
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition hover:bg-zinc-50 disabled:opacity-60"
                 >
                   <div>
                     <p className="text-sm font-semibold text-zinc-900">
@@ -196,7 +201,7 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
                   {loading === judge.sessionKey ? (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                   ) : (
-                    <ArrowIcon className="text-emerald-500" />
+                    <span className="text-emerald-600">→</span>
                   )}
                 </button>
               ))}
@@ -205,7 +210,7 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-4">
+      <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
         <Button variant="secondary" onClick={logout} size="sm">
           Sign out
         </Button>
@@ -219,13 +224,9 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
       </div>
 
       {showDevInfo ? (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Acceptance test sessions
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            These cookies match <code className="text-zinc-700">.dogfood.toml</code>{" "}
-            used by the automated checker.
           </p>
           <ul className="mt-3 space-y-1.5 font-mono text-xs text-zinc-600">
             {ALL_SESSIONS.map((s) => (
@@ -237,42 +238,32 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
         </div>
       ) : null}
 
-      {message ? <Alert tone="success">{message}</Alert> : null}
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {message ? (
+        <div className="mt-4">
+          <Alert tone="success">{message}</Alert>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="mt-4">
+          <Alert tone="error">{error}</Alert>
+        </div>
+      ) : null}
     </div>
-  );
-}
-
-function ArrowIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
   );
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
-      width="20"
-      height="20"
+      width="18"
+      height="18"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={`shrink-0 text-zinc-400 transition ${open ? "rotate-180" : ""}`}
+      className={`mt-1 shrink-0 text-zinc-400 transition ${open ? "rotate-180" : ""}`}
     >
       <path d="m6 9 6 6 6-6" />
     </svg>

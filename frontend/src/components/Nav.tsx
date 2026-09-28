@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { fetchMeClient, type UserInfo } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
+import { loginHref, type RoleMode } from "@/lib/role-auth";
 
 const publicLinks = [
   { href: "/projects", label: "Gallery" },
@@ -14,6 +15,7 @@ const publicLinks = [
 const roleLinks = [
   {
     href: "/participant",
+    loginMode: "participant" as RoleMode,
     label: "Participant",
     description: "Teams & submissions",
     role: "PARTICIPANT",
@@ -21,6 +23,7 @@ const roleLinks = [
   },
   {
     href: "/judging",
+    loginMode: "judge" as RoleMode,
     label: "Judging",
     description: "Score assigned projects",
     role: "JUDGE",
@@ -28,6 +31,7 @@ const roleLinks = [
   },
   {
     href: "/organizer/dashboard",
+    loginMode: "organizer" as RoleMode,
     label: "Organizer",
     description: "Event & judging ops",
     role: "ORGANIZER",
@@ -35,6 +39,7 @@ const roleLinks = [
   },
   {
     href: "/admin",
+    loginMode: "admin" as RoleMode,
     label: "Admin",
     description: "Platform management",
     role: "ADMIN",
@@ -170,10 +175,14 @@ export function Nav() {
                     pathname === link.href ||
                     pathname.startsWith(`${link.href}/`);
                   const isCurrentRole = user?.role === link.role;
+                  const href =
+                    !user || user.role !== link.role
+                      ? loginHref(link.href, link.loginMode)
+                      : link.href;
                   return (
                     <Link
                       key={link.href}
-                      href={link.href}
+                      href={href}
                       role="menuitem"
                       onClick={() => setRolesOpen(false)}
                       className={`flex items-start gap-3 px-4 py-3 transition hover:bg-zinc-50 ${
