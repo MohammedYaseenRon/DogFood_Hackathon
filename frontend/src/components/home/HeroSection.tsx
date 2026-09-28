@@ -26,14 +26,14 @@ export function HeroSection() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <ButtonLink
-              href="/projects"
+              href="/events"
               size="lg"
               className="!bg-[#3770FF] !from-[#3770FF] !to-[#2563eb] hover:!from-[#2563eb] hover:!to-[#1d4ed8]"
             >
               Browse hackathons
             </ButtonLink>
-            <ButtonLink href="/projects/new" variant="secondary" size="lg">
-              Submit project
+            <ButtonLink href="/projects" variant="secondary" size="lg">
+              View gallery
             </ButtonLink>
           </div>
         </div>

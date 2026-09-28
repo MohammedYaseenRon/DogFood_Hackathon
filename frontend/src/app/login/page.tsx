@@ -1,21 +1,41 @@
+import Link from "next/link";
 import { LoginPanel } from "@/components/LoginPanel";
+import { ParticipantSignInPanel } from "@/components/ParticipantSignInPanel";
 import { AuthPageLayout } from "@/components/ui/AuthPageLayout";
 
 type LoginPageProps = {
-  searchParams: Promise<{ redirect?: string }>;
+  searchParams: Promise<{ redirect?: string; mode?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { redirect } = await searchParams;
+  const { redirect, mode } = await searchParams;
+  const participantOnly =
+    mode === "participant" || redirect === "/participant";
+
+  if (participantOnly) {
+    return (
+      <AuthPageLayout
+        title="Participant sign in"
+        description="Access your team, submissions, and hackathon dashboard."
+        footer={
+          <p className="text-sm text-zinc-400">
+            Need another role?{" "}
+            <Link href="/login" className="font-medium text-zinc-600 hover:underline">
+              Full login
+            </Link>
+          </p>
+        }
+      >
+        <ParticipantSignInPanel redirectTo={redirect || "/participant"} />
+      </AuthPageLayout>
+    );
+  }
 
   return (
     <AuthPageLayout
-      title="Welcome back"
-      description="Sign in with email or pick a demo role to explore the hackathon portal."
+      title="Sign in"
+      description="Use your account or pick a demo role."
     >
-      <p className="mb-6 text-sm text-zinc-500">
-        Demo mode — pick a role or use your account
-      </p>
       <LoginPanel redirectTo={redirect} />
     </AuthPageLayout>
   );

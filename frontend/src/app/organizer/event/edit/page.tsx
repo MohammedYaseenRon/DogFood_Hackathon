@@ -1,4 +1,5 @@
 import { EventForm } from "@/components/EventForm";
+import { OrganizerGate } from "@/components/RoleGuards";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -11,15 +12,17 @@ export default async function EditEventPage() {
   if (!event) {
     return (
       <PageShell tone="violet" title="Manage event" description="No event configured yet.">
-        <EmptyState
-          title="No event yet"
-          description="Create a hackathon event before editing configuration."
-          action={
-            <ButtonLink href="/organizer/event/new" variant="primary">
-              Create event
-            </ButtonLink>
-          }
-        />
+        <OrganizerGate>
+          <EmptyState
+            title="No event yet"
+            description="Create a hackathon event before editing configuration."
+            action={
+              <ButtonLink href="/organizer/event/new" variant="primary">
+                Create event
+              </ButtonLink>
+            }
+          />
+        </OrganizerGate>
       </PageShell>
     );
   }
@@ -43,9 +46,11 @@ export default async function EditEventPage() {
         </div>
       }
     >
-      <Card variant="elevated">
-        <EventForm mode="edit" initialEvent={event} submissionsOpen={!closed} />
-      </Card>
+      <OrganizerGate>
+        <Card variant="elevated">
+          <EventForm mode="edit" initialEvent={event} submissionsOpen={!closed} />
+        </Card>
+      </OrganizerGate>
     </PageShell>
   );
 }

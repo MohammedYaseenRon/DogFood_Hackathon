@@ -84,8 +84,11 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
     ).replace(tzinfo=None)
 
     slug = re.sub(r"[^a-z0-9]+", "-", event_data["name"].lower()).strip("-")
-    reg_opens = submissions_close - timedelta(days=60)
-    reg_closes = submissions_close + timedelta(days=30)
+    now = datetime.utcnow()
+    # Keep fixture submission deadline for acceptance tests; registration window stays open for dev.
+    reg_opens = now - timedelta(days=30)
+    reg_closes = now + timedelta(days=90)
+    event_starts = reg_opens
 
     if event:
         event.name = event_data["name"]
@@ -95,7 +98,7 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
         event.short_description = "Build, submit, and get judged."
         event.registration_opens = reg_opens
         event.registration_closes = reg_closes
-        event.event_starts = reg_opens
+        event.event_starts = event_starts
         event.judging_starts = submissions_close
         event.judging_ends = submissions_close + timedelta(days=14)
         event.results_at = submissions_close + timedelta(days=21)
@@ -112,7 +115,7 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
         submissions_close=submissions_close,
         registration_opens=reg_opens,
         registration_closes=reg_closes,
-        event_starts=reg_opens,
+        event_starts=event_starts,
         judging_starts=submissions_close,
         judging_ends=submissions_close + timedelta(days=14),
         results_at=submissions_close + timedelta(days=21),

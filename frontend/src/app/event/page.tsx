@@ -1,4 +1,5 @@
 import { EventRegisterButton } from "@/components/EventRegisterButton";
+import { OrganizerOnly } from "@/components/RoleGuards";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -39,9 +40,11 @@ export default async function EventPage() {
           <ButtonLink href={`/events/${slug}`} variant="secondary" size="sm">
             Public page
           </ButtonLink>
-          <ButtonLink href="/organizer/event/edit" variant="secondary" size="sm">
-            Manage event
-          </ButtonLink>
+          <OrganizerOnly>
+            <ButtonLink href="/organizer/event/edit" variant="secondary" size="sm">
+              Manage event
+            </ButtonLink>
+          </OrganizerOnly>
         </div>
       }
     >

@@ -1,5 +1,10 @@
 import { OrganizerDashboard } from "@/components/OrganizerDashboard";
+import { OrganizerGate } from "@/components/RoleGuards";
 
 export default function OrganizerDashboardPage() {
-  return <OrganizerDashboard />;
+  return (
+    <OrganizerGate>
+      <OrganizerDashboard />
+    </OrganizerGate>
+  );
 }

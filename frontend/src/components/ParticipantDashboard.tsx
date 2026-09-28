@@ -4,16 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchMeClient,
   fetchMyProjectClient,
+  fetchMyRegistrationClient,
   fetchMyTeamClient,
+  registerForEventClient,
   type MyProject,
   type TeamSummary,
   type UserInfo,
 } from "@/lib/api";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { ParticipantSignInPanel } from "@/components/ParticipantSignInPanel";
 
 export function ParticipantDashboard({
   submissionsOpen,
@@ -23,17 +25,22 @@ export function ParticipantDashboard({
   const [user, setUser] = useState<UserInfo | null>(null);
   const [team, setTeam] = useState<TeamSummary | null | undefined>(undefined);
   const [project, setProject] = useState<MyProject | null | undefined>(undefined);
+  const [registered, setRegistered] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     return Promise.all([
       fetchMeClient(),
       fetchMyTeamClient(),
       fetchMyProjectClient(),
-    ]).then(([u, t, p]) => {
+      fetchMyRegistrationClient(),
+    ]).then(([u, t, p, reg]) => {
       setUser(u);
       setTeam(t?.team ?? null);
       setProject(p?.project ?? null);
+      setRegistered(Boolean(reg?.registered));
     });
   }, []);
 
@@ -41,32 +48,103 @@ export function ParticipantDashboard({
     reload().finally(() => setLoading(false));
   }, [reload]);
 
+  async function joinEvent() {
+    setJoinError(null);
+    setJoining(true);
+    const result = await registerForEventClient();
+    setJoining(false);
+    if (result.error) {
+      setJoinError(result.error);
+      return;
+    }
+    await reload();
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
       </div>
     );
   }
 
-  if (!user || user.role !== "PARTICIPANT") {
+  if (!user) {
     return (
-      <EmptyState
-        title="Participant access required"
-        description="Sign in as a participant to join teams and submit projects."
-        action={
-          <ButtonLink href="/login" variant="primary">
-            Sign in as participant
-          </ButtonLink>
-        }
-      />
+      <Card variant="elevated" className="mx-auto max-w-lg p-6 sm:p-8">
+        <div className="mb-6 text-center">
+          <h2 className="font-display text-xl font-bold text-zinc-900">
+            Participant access required
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500">
+            Sign in with your account or use the demo participant below.
+          </p>
+        </div>
+        <ParticipantSignInPanel embedded redirectTo="/participant" />
+      </Card>
+    );
+  }
+
+  // Logged in but not yet a participant — guide to event registration
+  if (user.role !== "PARTICIPANT") {
+    return (
+      <div className="space-y-6">
+        <Card variant="elevated" className="overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-100">
+              Almost there
+            </p>
+            <h2 className="font-display mt-1 text-2xl font-bold">
+              You&apos;re signed in as {user.role}
+            </h2>
+            <p className="mt-2 text-sm text-amber-50">
+              Register for a hackathon to unlock teams, invites, and project
+              submissions.
+            </p>
+          </div>
+          <div className="space-y-4 p-6">
+            <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              Signed in as{" "}
+              <span className="font-semibold text-zinc-900">
+                {user.name || user.email}
+              </span>
+            </div>
+
+            {user.role === "VISITOR" ? (
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={joinEvent} disabled={joining}>
+                  {joining ? "Registering..." : "Register for Sample Hack 2026"}
+                </Button>
+                <ButtonLink href="/events" variant="secondary">
+                  Browse all events
+                </ButtonLink>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <ButtonLink href="/events">Browse events</ButtonLink>
+                <ButtonLink href="/login" variant="secondary">
+                  Switch to Participant demo
+                </ButtonLink>
+              </div>
+            )}
+
+            {joinError ? <Alert tone="error">{joinError}</Alert> : null}
+
+            <p className="text-xs text-zinc-400">
+              Prefer a demo account?{" "}
+              <a href="/login" className="font-semibold text-violet-600">
+                Switch role → Participant
+              </a>
+            </p>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   const hasTeam = team !== null && team !== undefined;
   const hasProject = project !== null && project !== undefined;
   const steps = [
-    { step: 1, title: "Sign in", description: "Log in as a participant.", done: true },
+    { step: 1, title: "Signed in", description: "You're a participant.", done: true },
     {
       step: 2,
       title: "Join a team",
@@ -89,6 +167,12 @@ export function ParticipantDashboard({
 
   return (
     <div className="space-y-8">
+      {!registered ? (
+        <Alert tone="info" title="Tip">
+          You have participant access. Create a team and submit when ready.
+        </Alert>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">

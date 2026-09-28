@@ -107,12 +107,7 @@ export function LoginPanel({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-5">
-        <p className="mb-4 text-sm font-semibold text-zinc-700">
-          Sign in with email
-        </p>
-        <CredentialAuthForm mode="login" redirectTo={redirectTo} />
-      </div>
+      <CredentialAuthForm mode="login" redirectTo={redirectTo} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

@@ -47,12 +47,30 @@ export function CredentialAuthForm({
       return;
     }
 
-    router.push(redirectTo || "/participant");
+    const role = data?.user?.role as string | undefined;
+    let next = redirectTo;
+    if (next === "/participant" && role && role !== "PARTICIPANT") {
+      next = "/events";
+    }
+    if (next === "/projects/new" && role && role !== "PARTICIPANT") {
+      next = "/events";
+    }
+
+    const fallback =
+      role === "PARTICIPANT"
+        ? "/participant"
+        : role === "ORGANIZER" || role === "ADMIN"
+          ? "/organizer/dashboard"
+          : role === "JUDGE"
+            ? "/judging"
+            : "/events";
+
+    router.push(next || fallback);
     router.refresh();
   }
 
   const inputClass =
-    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm transition focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100";
+    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100";
 
   return (
     <form onSubmit={submit} className="space-y-4">

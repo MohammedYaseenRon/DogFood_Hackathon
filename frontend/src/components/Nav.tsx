@@ -59,6 +59,8 @@ export function Nav() {
   const rolesRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isParticipant = user?.role === "PARTICIPANT";
+  const showRolesMenu = !isAuthPage && !isParticipant;
 
   const activeRoleLink = roleLinks.find(
     (link) => pathname === link.href || pathname.startsWith(`${link.href}/`),
@@ -93,7 +95,7 @@ export function Nav() {
     <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/90 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-sm font-bold text-white shadow-md shadow-violet-500/25">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-sm font-bold text-white">
             D
           </span>
           <span className="font-display text-xl font-bold text-zinc-900">Dogfood</span>
@@ -110,7 +112,7 @@ export function Nav() {
                 href={link.href}
                 className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
                   active
-                    ? "bg-violet-100 text-violet-700"
+                    ? "bg-zinc-900 text-white"
                     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                 }`}
               >
@@ -118,10 +120,21 @@ export function Nav() {
               </Link>
             );
           })}
-
+          {isParticipant ? (
+            <Link
+              href="/participant"
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
+                pathname.startsWith("/participant")
+                  ? "bg-orange-500 text-white"
+                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+              }`}
+            >
+              My hub
+            </Link>
+          ) : null}
         </nav>
 
-        {!isAuthPage ? (
+        {showRolesMenu ? (
           <div ref={rolesRef} className="relative md:ml-0">
             <button
               type="button"
@@ -131,7 +144,7 @@ export function Nav() {
               }}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 activeRoleLink || rolesOpen
-                  ? "bg-violet-100 text-violet-700"
+                  ? "bg-zinc-900 text-white"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
               }`}
               aria-expanded={rolesOpen}
@@ -164,7 +177,7 @@ export function Nav() {
                       role="menuitem"
                       onClick={() => setRolesOpen(false)}
                       className={`flex items-start gap-3 px-4 py-3 transition hover:bg-zinc-50 ${
-                        active ? "bg-violet-50/60" : ""
+                        active ? "bg-zinc-50" : ""
                       }`}
                     >
                       <div className="min-w-0 flex-1">
@@ -188,7 +201,7 @@ export function Nav() {
                   href="/login"
                   role="menuitem"
                   onClick={() => setRolesOpen(false)}
-                  className="block px-4 py-2.5 text-sm font-medium text-violet-600 hover:bg-violet-50"
+                  className="block px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                 >
                   Switch role →
                 </Link>
@@ -226,14 +239,16 @@ export function Nav() {
                     </p>
                     <p className="truncate text-xs text-zinc-500">{user.email}</p>
                   </div>
-                  <Link
-                    href="/login"
-                    role="menuitem"
-                    onClick={() => setAccountOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Switch role
-                  </Link>
+                  {!isParticipant ? (
+                    <Link
+                      href="/login"
+                      role="menuitem"
+                      onClick={() => setAccountOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                    >
+                      Switch role
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     role="menuitem"

@@ -1,4 +1,5 @@
 import { EventForm } from "@/components/EventForm";
+import { OrganizerGate } from "@/components/RoleGuards";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
@@ -23,9 +24,11 @@ export default async function NewEventPage() {
         </ButtonLink>
       }
     >
-      <Card variant="elevated">
-        <EventForm mode="create" submissionsOpen />
-      </Card>
+      <OrganizerGate>
+        <Card variant="elevated">
+          <EventForm mode="create" submissionsOpen />
+        </Card>
+      </OrganizerGate>
     </PageShell>
   );
 }
