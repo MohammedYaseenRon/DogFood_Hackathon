@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDateTime, phaseInfo } from "@/lib/format";
+import { Countdown } from "@/components/ui/Countdown";
+import { PageHeaderBand } from "@/components/ui/PageShell";
 import { loginHref } from "@/lib/role-auth";
 
 const roleTone = {
@@ -94,7 +96,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -176,35 +178,24 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
   const phase = team.event ? phaseInfo(team.event.phase) : null;
 
   return (
-    <div>
-      <div className="relative overflow-hidden border-b border-white/60 bg-gradient-to-br from-amber-50 via-white to-orange-50/80">
-        <div className="page-dot-grid absolute inset-0 opacity-50" />
-        <div className="relative mx-auto flex max-w-4xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold tracking-[0.2em] text-amber-600 uppercase">Your team</p>
-            <h1 className="font-display mt-3 text-3xl font-bold text-zinc-950">{team.name}</h1>
-            {team.description ? <p className="mt-2 max-w-xl text-sm text-zinc-600">{team.description}</p> : null}
-            <p className="mt-2 text-sm text-zinc-600">
+    <div className="pb-24">
+      <PageHeaderBand
+        eyebrow={team.event ? `Team / ${team.event.name}` : "Team"}
+        title={team.name}
+        description={team.description ?? undefined}
+        maxWidth="max-w-4xl"
+        badge={
+          <>
+            {phase ? <Badge tone={phase.tone}>{phase.label}</Badge> : null}
+            <Badge>
               {members.length}/{team.maxTeamSize} members
-              {team.myRole ? (
-                <>
-                  {" "}· You are <span className="font-semibold text-zinc-800">{team.myRole.toLowerCase()}</span>
-                </>
-              ) : null}
-            </p>
-            {team.event ? (
-              <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
-                <Link href={`/events/${team.event.slug}`} className="font-semibold text-zinc-800 hover:underline">
-                  {team.event.name}
-                </Link>
-                {phase ? <Badge tone={phase.tone}>{phase.label}</Badge> : null}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/participant" variant="secondary" size="sm">
-              Dashboard
-            </ButtonLink>
+            </Badge>
+            {team.myRole ? <Badge tone="ink">you · {team.myRole.toLowerCase()}</Badge> : null}
+            {team.event?.submissionsOpen ? <Countdown to={team.event.submissionsClose} /> : null}
+          </>
+        }
+        action={
+          <>
             {team.project ? (
               <ButtonLink href={`/projects/${team.project.id}`} variant="secondary" size="sm">
                 View project
@@ -215,11 +206,11 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
                 {team.project ? "Edit project" : "Start submission"}
               </ButtonLink>
             ) : null}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="page-surface mx-auto max-w-4xl space-y-6 px-6 py-8">
+      <div className="mx-auto max-w-4xl space-y-6 px-5 sm:px-6">
         {searchParams.get("created") ? (
           <Alert tone="success" title="Team created">
             Generate an invite link below and share it with your teammates.
@@ -250,7 +241,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
         {canManage && editing ? (
           <Card>
             <form onSubmit={saveTeam} className="space-y-4">
-              <h2 className="font-display text-lg font-bold text-zinc-950">Edit team</h2>
+              <h2 className="font-display text-lg font-semibold text-ink">Edit team</h2>
               <div>
                 <label htmlFor="edit-team-name" className="mb-2 block text-sm font-semibold text-zinc-700">
                   Name
@@ -261,7 +252,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
                   onChange={(e) => setName(e.target.value)}
                   required
                   maxLength={100}
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-violet-400 focus:outline-none"
+                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
                 />
               </div>
               <div>
@@ -274,7 +265,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
                   onChange={(e) => setDescription(e.target.value)}
                   maxLength={500}
                   rows={3}
-                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-violet-400 focus:outline-none"
+                  className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
                 />
               </div>
               <div className="flex gap-2">
@@ -291,7 +282,7 @@ export function TeamPageContent({ teamId }: { teamId: string }) {
 
         <Card>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-display text-lg font-bold text-zinc-950">Members</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">Members</h2>
             {canManage && windowOpen && !editing ? (
               <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
                 Edit team

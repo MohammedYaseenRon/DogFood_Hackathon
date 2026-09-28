@@ -74,7 +74,7 @@ export function RoleSignInPanel({
         type="button"
         onClick={() => void demoLogin()}
         disabled={loading}
-        className={`group flex w-full items-center gap-4 rounded-xl border border-zinc-200 bg-[#fafafa] p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
+        className={`group flex w-full items-center gap-4 rounded-xl border border-zinc-200 bg-canvas p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
       >
         <div
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${config.iconBg} text-sm font-bold text-white`}
@@ -172,7 +172,7 @@ export function RegisterDemoRoles({
               type="button"
               onClick={() => void demoLogin(mode)}
               disabled={loading !== null}
-              className={`flex items-start gap-3 rounded-xl border border-zinc-200 bg-[#fafafa] p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
+              className={`flex items-start gap-3 rounded-xl border border-zinc-200 bg-canvas p-4 text-left transition disabled:opacity-60 ${config.hoverBorder}`}
             >
               <div
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${config.iconBg} text-sm font-bold text-white`}

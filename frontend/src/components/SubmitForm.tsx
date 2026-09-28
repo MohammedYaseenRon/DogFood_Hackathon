@@ -252,7 +252,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-[#f4f5f7]">
+      <div className="flex min-h-[40vh] items-center justify-center bg-canvas">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
       </div>
     );
@@ -301,7 +301,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
               <InfoRow label="Submissions" value={closed ? "Closed" : "Open"} tone={closed ? "closed" : "open"} />
             </div>
             {project ? (
-              <Link href={`/projects/${project.id}`} className="mt-5 inline-flex text-sm font-semibold text-violet-700 hover:underline">
+              <Link href={`/projects/${project.id}`} className="mt-5 inline-flex text-sm font-semibold text-brand-700 hover:underline">
                 {status === "SUBMITTED" ? "View public page →" : "Preview (team only) →"}
               </Link>
             ) : null}
@@ -455,10 +455,10 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
                 </label>
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2">
                   {form.techTags.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
                       {tag}
                       {!readOnly ? (
-                        <button type="button" aria-label={`Remove ${tag}`} onClick={() => set("techTags", form.techTags.filter((t) => t !== tag))} className="text-violet-400 hover:text-violet-800">
+                        <button type="button" aria-label={`Remove ${tag}`} onClick={() => set("techTags", form.techTags.filter((t) => t !== tag))} className="text-brand-400 hover:text-brand-800">
                           ×
                         </button>
                       ) : null}
@@ -605,7 +605,7 @@ function Check({ done, children }: { done: boolean; children: React.ReactNode })
 
 function InfoRow({ label, value, tone }: { label: string; value: string; tone?: "open" | "closed" }) {
   return (
-    <div className="rounded-xl border border-zinc-100 bg-[#fafafa] px-4 py-3">
+    <div className="rounded-xl border border-zinc-100 bg-canvas px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</p>
       <p
         className={`mt-1 text-sm font-semibold ${

@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
-import { DM_Sans, Sora } from "next/font/google";
+import { Figtree, JetBrains_Mono, Unbounded } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
-const sora = Sora({
+const unbounded = Unbounded({
   subsets: ["latin"],
-  variable: "--font-sora",
-  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-unbounded",
+  weight: ["500", "600", "700"],
 });
 
-const dmSans = DM_Sans({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-figtree",
   weight: ["400", "500", "600", "700"],
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -28,10 +34,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sora.variable} ${dmSans.variable}`}>
-      <body className="min-h-screen bg-zinc-50 font-sans antialiased">
+    <html lang="en" className={`${unbounded.variable} ${figtree.variable} ${jetbrains.variable}`}>
+      <body className="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased">
+        <a
+          href="#main"
+          className="sr-only z-[100] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Skip to content
+        </a>
         <Nav />
-        {children}
+        <div id="main" className="flex-1">
+          {children}
+        </div>
         <SiteFooter />
       </body>
     </html>

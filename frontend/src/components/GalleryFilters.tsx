@@ -46,11 +46,11 @@ export function GalleryFilters({
 
   const activeCount = [current.q, current.event, current.track, current.tag].filter(Boolean).length;
   const selectClass =
-    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
+    "h-9 rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
   return (
-    <div className="sticky top-[57px] z-40 border-b border-zinc-200/80 bg-white/90 py-4 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl space-y-3 px-6">
+    <div className="sticky top-16 z-40 border-y border-line bg-canvas/90 py-4 backdrop-blur-xl">
+      <div className="mx-auto max-w-7xl space-y-3 px-5 sm:px-6">
         <form
           role="search"
           onSubmit={(e) => {
@@ -67,10 +67,10 @@ export function GalleryFilters({
               placeholder="Search by name, description, team, track or tech…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white py-3 pl-11 pr-4 text-sm text-zinc-800 shadow-sm transition placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="h-11 w-full rounded-lg border border-line bg-white pl-11 pr-4 text-sm text-ink transition placeholder:text-zinc-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
             />
           </div>
-          <button type="submit" className="rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800">
+          <button type="submit" className="h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-white hover:bg-brand-700">
             Search
           </button>
         </form>
@@ -108,7 +108,7 @@ export function GalleryFilters({
                 setQ("");
                 router.push("/projects");
               }}
-              className="ml-auto text-sm font-medium text-blue-600 hover:text-blue-800"
+              className="ml-auto text-sm font-medium text-brand-700 hover:underline"
             >
               Clear filters ({activeCount})
             </button>
@@ -125,8 +125,8 @@ export function GalleryFilters({
                   type="button"
                   aria-pressed={active}
                   onClick={() => apply({ tag: active ? "" : tag.name })}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    active ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  className={`rounded-md px-2.5 py-1 font-mono text-xs transition ${
+                    active ? "bg-ink text-signal-300" : "bg-white text-zinc-600 ring-1 ring-line hover:ring-zinc-400"
                   }`}
                 >
                   {tag.name} <span className="opacity-60">{tag.count}</span>

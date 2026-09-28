@@ -4,88 +4,80 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { fetchMeClient, logoutClient, type UserInfo } from "@/lib/api";
-import { Badge } from "@/components/ui/Badge";
-import { homeForRole, loginHref, type RoleMode } from "@/lib/role-auth";
+import { homeForRole } from "@/lib/role-auth";
 
 const publicLinks = [
-  { href: "/projects", label: "Gallery" },
   { href: "/events", label: "Events" },
+  { href: "/projects", label: "Gallery" },
 ];
 
-const roleLinks = [
-  {
-    href: "/participant",
-    loginMode: "participant" as RoleMode,
-    label: "Participant",
-    description: "Teams & submissions",
-    role: "PARTICIPANT",
-    tone: "warning" as const,
-  },
-  {
-    href: "/judging",
-    loginMode: "judge" as RoleMode,
-    label: "Judging",
-    description: "Score assigned projects",
-    role: "JUDGE",
-    tone: "success" as const,
-  },
-  {
-    href: "/organizer/dashboard",
-    loginMode: "organizer" as RoleMode,
-    label: "Organizer",
-    description: "Event & judging ops",
-    role: "ORGANIZER",
-    tone: "brand" as const,
-  },
-  {
-    href: "/admin",
-    loginMode: "admin" as RoleMode,
-    label: "Admin",
-    description: "Platform management",
-    role: "ADMIN",
-    tone: "default" as const,
-  },
-];
-
-const roleTone: Record<string, "brand" | "success" | "warning" | "default"> = {
-  ORGANIZER: "brand",
-  JUDGE: "success",
-  PARTICIPANT: "warning",
-  ADMIN: "default",
-  VISITOR: "default",
+const dashboardLabel: Record<string, string> = {
+  PARTICIPANT: "My hub",
+  VISITOR: "My hub",
+  JUDGE: "Judging",
+  ORGANIZER: "Organizer",
+  ADMIN: "Admin",
 };
+
+function initials(user: UserInfo) {
+  const source = user.name?.trim() || user.email;
+  const parts = source.split(/[\s@._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+export function Logo({ dark = false }: { dark?: boolean }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span
+        aria-hidden
+        className={`relative flex h-8 w-8 items-center justify-center rounded-lg font-display text-sm font-semibold ${
+          dark ? "bg-signal-300 text-ink" : "bg-ink text-signal-300"
+        }`}
+      >
+        d
+        <span className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ${dark ? "bg-white" : "bg-signal-300"}`} />
+      </span>
+      <span className={`font-display text-lg font-semibold tracking-tight ${dark ? "text-white" : "text-ink"}`}>
+        dogfood
+      </span>
+    </span>
+  );
+}
 
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [rolesOpen, setRolesOpen] = useState(false);
+  const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
   const [accountOpen, setAccountOpen] = useState(false);
-  const rolesRef = useRef<HTMLDivElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
-  const isAuthPage = pathname === "/login" || pathname === "/register";
-  const isParticipant = user?.role === "PARTICIPANT";
-  const showRolesMenu = !isAuthPage && !isParticipant;
-
-  const activeRoleLink = roleLinks.find(
-    (link) => pathname === link.href || pathname.startsWith(`${link.href}/`),
-  );
 
   useEffect(() => {
-    fetchMeClient().then(setUser);
+    let active = true;
+    fetchMeClient().then((me) => {
+      if (active) setUser(me);
+    });
+    return () => {
+      active = false;
+    };
   }, [pathname]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (rolesRef.current && !rolesRef.current.contains(e.target as Node)) {
-        setRolesOpen(false);
-      }
-      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    }
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
         setAccountOpen(false);
+        setMobileOpen(false);
       }
     }
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onEscape);
+    };
   }, []);
 
   async function signOut() {
@@ -96,189 +88,89 @@ export function Nav() {
     router.refresh();
   }
 
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const home = user ? homeForRole(user.role) : null;
+  const links = [
+    ...publicLinks,
+    ...(user && home && home !== "/events" ? [{ href: home, label: dashboardLabel[user.role] ?? "Dashboard" }] : []),
+  ];
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/90 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-sm font-bold text-white">
-            D
-          </span>
-          <span className="font-display text-xl font-bold text-zinc-900">Dogfood</span>
+    <header className="sticky top-0 z-50 border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 sm:px-6">
+        <Link href="/" aria-label="Dogfood home" onClick={() => setMobileOpen(false)}>
+          <Logo />
         </Link>
 
-        <div className="flex flex-1 items-center justify-end gap-1 md:justify-center">
-        <nav className="hidden items-center gap-1 md:flex">
-          {publicLinks.map((link) => {
-            const active =
-              pathname === link.href || pathname.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
-                  active
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-          {isParticipant ? (
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
             <Link
-              href="/participant"
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
-                pathname.startsWith("/participant")
-                  ? "bg-orange-500 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+              key={link.href}
+              href={link.href}
+              aria-current={isActive(link.href) ? "page" : undefined}
+              className={`relative rounded-md px-3 py-2 text-sm font-medium transition ${
+                isActive(link.href) ? "text-ink" : "text-zinc-500 hover:text-ink"
               }`}
             >
-              My hub
+              {link.label}
+              {isActive(link.href) ? (
+                <span aria-hidden className="absolute inset-x-3 -bottom-[13px] h-[3px] rounded-t bg-signal-300" />
+              ) : null}
             </Link>
-          ) : null}
+          ))}
         </nav>
 
-        {showRolesMenu ? (
-          <div ref={rolesRef} className="relative md:ml-0">
-            <button
-              type="button"
-              onClick={() => {
-                setRolesOpen((v) => !v);
-                setAccountOpen(false);
-              }}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                activeRoleLink || rolesOpen
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-              }`}
-              aria-expanded={rolesOpen}
-              aria-haspopup="menu"
-            >
-              <span className="hidden sm:inline">
-                {activeRoleLink ? activeRoleLink.label : "Roles"}
-              </span>
-              <span className="sm:hidden">Roles</span>
-              <ChevronIcon open={rolesOpen} />
-            </button>
-
-            {rolesOpen ? (
-              <div
-                role="menu"
-                className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-xl shadow-zinc-200/50 md:left-0 md:right-auto"
-              >
-                <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  Dashboards
-                </p>
-                {roleLinks.map((link) => {
-                  const active =
-                    pathname === link.href ||
-                    pathname.startsWith(`${link.href}/`);
-                  const isCurrentRole = user?.role === link.role;
-                  const href =
-                    !user || user.role !== link.role
-                      ? loginHref(link.href, link.loginMode)
-                      : link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={href}
-                      role="menuitem"
-                      onClick={() => setRolesOpen(false)}
-                      className={`flex items-start gap-3 px-4 py-3 transition hover:bg-zinc-50 ${
-                        active ? "bg-zinc-50" : ""
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-zinc-900">
-                            {link.label}
-                          </span>
-                          {isCurrentRole ? (
-                            <Badge tone={link.tone}>Active</Badge>
-                          ) : null}
-                        </div>
-                        <p className="mt-0.5 text-xs text-zinc-500">
-                          {link.description}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-                <div className="my-1 border-t border-zinc-100" />
-                <Link
-                  href="/login"
-                  role="menuitem"
-                  onClick={() => setRolesOpen(false)}
-                  className="block px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                >
-                  Switch role →
-                </Link>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {!isAuthPage && user ? (
+        <div className="ml-auto flex items-center gap-2">
+          {user === undefined ? (
+            <span className="h-9 w-24 animate-pulse rounded-lg bg-zinc-200/70" />
+          ) : user ? (
             <div ref={accountRef} className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setAccountOpen((v) => !v);
-                  setRolesOpen(false);
-                }}
-                className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                onClick={() => setAccountOpen((v) => !v)}
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
+                className="flex items-center gap-2.5 rounded-lg border border-line bg-white py-1 pl-1 pr-3 text-sm transition hover:border-zinc-400"
               >
-                <Badge tone={roleTone[user.role] ?? "default"}>{user.role}</Badge>
-                <ChevronIcon open={accountOpen} />
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink font-mono text-[11px] font-semibold text-signal-300">
+                  {initials(user)}
+                </span>
+                <span className="hidden max-w-[9rem] truncate font-medium text-ink sm:inline">
+                  {user.name || user.email.split("@")[0]}
+                </span>
+                <span className="font-mono text-[10px] tracking-wider text-zinc-400 uppercase">{user.role}</span>
               </button>
 
               {accountOpen ? (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-xl shadow-zinc-200/50"
+                  className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-[0_16px_40px_-12px_rgba(21,19,43,0.25)]"
                 >
-                  <div className="border-b border-zinc-100 px-4 py-3">
-                    <p className="truncate text-sm font-semibold text-zinc-900">
-                      {user.name || user.email}
-                    </p>
-                    <p className="truncate text-xs text-zinc-500">{user.email}</p>
+                  <div className="border-b border-line px-4 py-3">
+                    <p className="truncate text-sm font-semibold text-ink">{user.name || user.email}</p>
+                    <p className="truncate font-mono text-xs text-zinc-500">{user.email}</p>
                   </div>
-                  <Link
-                    href={homeForRole(user.role)}
-                    role="menuitem"
-                    onClick={() => setAccountOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
-                  >
-                    My dashboard
-                  </Link>
-                  <Link
-                    href="/account"
-                    role="menuitem"
-                    onClick={() => setAccountOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Account settings
-                  </Link>
-                  {!isParticipant ? (
+                  {[
+                    { href: homeForRole(user.role), label: "My dashboard" },
+                    { href: "/account", label: "Account settings" },
+                    { href: "/login", label: "Switch demo role" },
+                  ].map((item) => (
                     <Link
-                      href="/login"
+                      key={item.label}
+                      href={item.href}
                       role="menuitem"
                       onClick={() => setAccountOpen(false)}
-                      className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                      className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-ink"
                     >
-                      Switch role
+                      {item.label}
                     </Link>
-                  ) : null}
+                  ))}
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => void signOut()}
-                    className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                    className="block w-full border-t border-line px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
                   >
                     Sign out
                   </button>
@@ -288,39 +180,56 @@ export function Nav() {
           ) : !isAuthPage ? (
             <>
               <Link
-                href="/register"
-                className="hidden rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 sm:inline-block"
-              >
-                Register
-              </Link>
-              <Link
                 href="/login"
-                className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                className="hidden rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-600 hover:text-ink sm:inline-block"
               >
                 Sign in
               </Link>
+              <Link
+                href="/register"
+                className="inline-flex h-9 items-center rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-brand-700"
+              >
+                Create account
+              </Link>
             </>
           ) : null}
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink md:hidden"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              {mobileOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+            </svg>
+          </button>
         </div>
       </div>
-    </header>
-  );
-}
 
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`transition ${open ? "rotate-180" : ""}`}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
+      {mobileOpen ? (
+        <nav aria-label="Mobile" className="border-t border-line bg-white px-5 py-3 md:hidden">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center justify-between rounded-lg px-3 py-3 text-base font-medium ${
+                isActive(link.href) ? "bg-signal-100 text-ink" : "text-zinc-700"
+              }`}
+            >
+              {link.label}
+              <span aria-hidden>→</span>
+            </Link>
+          ))}
+          {!user ? (
+            <Link href="/login" onClick={() => setMobileOpen(false)} className="block rounded-lg px-3 py-3 text-base font-medium text-zinc-700">
+              Sign in
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
+    </header>
   );
 }

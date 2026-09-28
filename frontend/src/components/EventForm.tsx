@@ -262,7 +262,7 @@ export function EventForm({
           </div>
         </Section>
 
-        <Section step={2} tone="bg-violet-100 text-violet-700" title="Schedule" description="Times are in your local timezone. Only the deadline is required.">
+        <Section step={2} tone="bg-brand-100 text-brand-700" title="Schedule" description="Times are in your local timezone. Only the deadline is required.">
           <div className="grid gap-5 sm:grid-cols-2">
             {DATE_FIELDS.map((field) => (
               <Field key={field.key} label={`${field.label}${field.required ? " *" : ""}`} htmlFor={`ev-${field.key}`} hint={field.hint}>
@@ -299,7 +299,7 @@ export function EventForm({
 
         <Section
           step={3}
-          tone="bg-cyan-100 text-cyan-700"
+          tone="bg-brand-100 text-brand-700"
           title="Tracks"
           description="Participants pick one when submitting. Removing a track that has projects retires it instead."
           action={<Button type="button" variant="secondary" size="sm" onClick={() => setTracks((prev) => [...prev, { name: "", description: "" }])}>+ Add track</Button>}
@@ -426,9 +426,9 @@ export function EventForm({
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">Preview</p>
-          <h3 className="font-display mt-2 text-xl font-bold text-zinc-950">{name.trim() || "Untitled event"}</h3>
+          <h3 className="font-display mt-2 text-xl font-semibold text-ink">{name.trim() || "Untitled event"}</h3>
           <dl className="mt-5 space-y-3 text-sm">
             <PreviewRow label="Visibility" value={published ? "Published" : "Hidden"} />
             <PreviewRow label="Registration" value={dates.registration_opens ? formatDateTime(fromLocalInput(dates.registration_opens)) : "Open now"} />
@@ -439,7 +439,7 @@ export function EventForm({
             <PreviewRow label="Team size" value={`1–${maxTeamSize}`} />
           </dl>
         </div>
-        <div className="hidden rounded-[24px] border border-zinc-200 bg-zinc-950 p-5 text-white shadow-sm lg:block">
+        <div className="hidden rounded-2xl border border-zinc-200 bg-zinc-950 p-5 text-white shadow-sm lg:block">
           <p className="text-sm text-zinc-400">
             {mode === "edit" ? "Changes apply immediately, including deadline changes." : "You can edit everything after creating the event."}
           </p>
@@ -469,12 +469,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-col gap-4 border-b border-zinc-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${tone}`}>{step}</span>
           <div>
-            <h2 className="font-display text-lg font-bold text-zinc-950">{title}</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
             <p className="text-sm text-zinc-500">{description}</p>
           </div>
         </div>

@@ -76,7 +76,7 @@ export function InviteMembersSection({ teamId }: { teamId: string }) {
 
   return (
     <Card>
-      <h3 className="font-display text-lg font-bold text-zinc-950">Invite teammates</h3>
+      <h3 className="font-display text-lg font-semibold text-ink">Invite teammates</h3>
       <p className="mt-1 text-sm text-zinc-500">
         Anyone with the link can join until it expires, runs out of uses, or you revoke it.
       </p>
@@ -121,14 +121,14 @@ export function InviteMembersSection({ teamId }: { teamId: string }) {
       {invites.length > 0 ? (
         <ul className="mt-6 space-y-3">
           {invites.map((invite) => (
-            <li key={invite.token} className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+            <li key={invite.token} className="rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   readOnly
                   aria-label="Invite link"
                   value={invite.inviteUrl}
                   onFocus={(e) => e.currentTarget.select()}
-                  className="w-full rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm text-zinc-800"
+                  className="w-full rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-sm text-zinc-800"
                 />
                 <div className="flex shrink-0 gap-2">
                   <Button type="button" variant="secondary" size="sm" onClick={() => void copyLink(invite)}>

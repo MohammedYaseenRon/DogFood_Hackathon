@@ -1,8 +1,8 @@
 const tones = {
-  info: "border-sky-200 bg-sky-50 text-sky-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  error: "border-red-200 bg-red-50 text-red-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  info: { box: "border-brand-200 bg-brand-50/70 text-brand-950", bar: "bg-brand-500" },
+  warning: { box: "border-amber-200 bg-amber-50 text-amber-950", bar: "bg-amber-500" },
+  error: { box: "border-red-200 bg-red-50 text-red-950", bar: "bg-red-500" },
+  success: { box: "border-emerald-200 bg-emerald-50 text-emerald-950", bar: "bg-emerald-500" },
 };
 
 export function Alert({
@@ -14,12 +14,15 @@ export function Alert({
   title?: string;
   children: React.ReactNode;
 }) {
+  const style = tones[tone];
   return (
-    <div className={`rounded-xl border px-4 py-3 ${tones[tone]}`}>
-      {title ? <p className="font-medium">{title}</p> : null}
-      <div className={`text-sm ${title ? "mt-1 opacity-90" : ""}`}>
-        {children}
-      </div>
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`relative overflow-hidden rounded-xl border py-3 pl-5 pr-4 ${style.box}`}
+    >
+      <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${style.bar}`} />
+      {title ? <p className="text-sm font-semibold">{title}</p> : null}
+      <div className={`text-sm leading-relaxed ${title ? "mt-0.5 opacity-85" : ""}`}>{children}</div>
     </div>
   );
 }

@@ -75,23 +75,23 @@ export function ScoreForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+    <form onSubmit={handleSubmit} className="mt-4 space-y-4 border-t border-zinc-100 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-slate-700">Score {title}</p>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm font-medium text-zinc-700">Score {title}</p>
+        <p className="text-sm text-zinc-500">
           Weighted total:{" "}
-          <span className="font-semibold text-indigo-600">{weightedTotal}</span>
+          <span className="font-semibold text-brand-600">{weightedTotal}</span>
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         {rubric.map((item) => (
-          <div key={item.name} className="rounded-xl bg-slate-50 p-4">
+          <div key={item.name} className="rounded-xl bg-zinc-50 p-4">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium capitalize text-slate-700">
+              <label className="text-sm font-medium capitalize text-zinc-700">
                 {item.name}
               </label>
-              <span className="text-xs text-slate-500">×{item.weight}</span>
+              <span className="text-xs text-zinc-500">×{item.weight}</span>
             </div>
             <div className="mt-3 flex items-center gap-3">
               <input
@@ -106,9 +106,9 @@ export function ScoreForm({
                     [item.name]: Number(e.target.value),
                   }))
                 }
-                className="w-full accent-indigo-600"
+                className="w-full accent-brand-600"
               />
-              <span className="w-6 text-center text-sm font-semibold text-slate-900">
+              <span className="w-6 text-center text-sm font-semibold text-zinc-900">
                 {criteria[item.name]}
               </span>
             </div>
@@ -117,14 +117,14 @@ export function ScoreForm({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+        <label className="mb-1.5 block text-sm font-medium text-zinc-700">
           Comment
         </label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={2}
-          className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm"
+          className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm"
           placeholder="Optional feedback for the team"
         />
       </div>

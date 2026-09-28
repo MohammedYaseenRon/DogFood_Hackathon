@@ -1,30 +1,31 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "white";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "white" | "signal";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm shadow-zinc-900/10",
-  secondary:
-    "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300",
-  ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+  primary: "bg-ink text-white hover:bg-brand-700 shadow-[0_1px_0_rgba(0,0,0,0.25)]",
+  secondary: "bg-white text-ink border border-line hover:border-zinc-400 hover:bg-zinc-50",
+  ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-ink",
   danger: "bg-red-600 text-white hover:bg-red-700",
-  outline:
-    "border-2 border-white/30 text-white hover:bg-white/10 backdrop-blur-sm",
-  white: "bg-white text-zinc-900 hover:bg-zinc-100 shadow-lg",
+  outline: "border border-white/30 text-white hover:bg-white/10",
+  white: "bg-white text-ink hover:bg-signal-100",
+  signal: "bg-signal-300 text-ink hover:bg-signal-400 shadow-[0_1px_0_rgba(0,0,0,0.2)]",
 };
+
+const sizes = {
+  sm: "h-9 px-3.5 text-sm gap-1.5",
+  md: "h-11 px-5 text-sm gap-2",
+  lg: "h-12 px-6 text-[15px] gap-2",
+};
+
+const base =
+  "inline-flex items-center justify-center rounded-lg font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   size?: "sm" | "md" | "lg";
   children: ReactNode;
-};
-
-const sizes = {
-  sm: "px-3.5 py-2 text-sm",
-  md: "px-5 py-2.5 text-sm",
-  lg: "px-7 py-3.5 text-base",
 };
 
 export function Button({
@@ -36,7 +37,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 ${variants[variant]} ${sizes[size]} ${className} disabled:cursor-not-allowed disabled:opacity-50`}
+      className={`${base} ${variants[variant]} ${sizes[size]} disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
       {...props}
     >
       {children}
@@ -58,10 +59,7 @@ export function ButtonLink({
   children: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className={`inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 ${variants[variant]} ${sizes[size]} ${className}`}
-    >
+    <Link href={href} className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}>
       {children}
     </Link>
   );

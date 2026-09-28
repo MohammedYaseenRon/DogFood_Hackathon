@@ -114,7 +114,7 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
                             </td>
                             <td className="px-5 py-3">
                               {row.project ? (
-                                <Link href={`/projects/${row.project.id}`} className="font-medium text-violet-700 hover:underline">
+                                <Link href={`/projects/${row.project.id}`} className="font-medium text-brand-700 hover:underline">
                                   {row.project.title || "Untitled"}
                                 </Link>
                               ) : (
@@ -145,7 +145,7 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
 
             <aside className="space-y-6">
               <Card>
-                <h2 className="font-display text-lg font-bold text-zinc-900">Schedule</h2>
+                <h2 className="font-display text-lg font-semibold text-zinc-900">Schedule</h2>
                 <dl className="mt-4 space-y-3 text-sm">
                   {schedule.map(([label, at]) => (
                     <div key={label} className="flex justify-between gap-4">
@@ -161,7 +161,7 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
                 </div>
               </Card>
               <Card>
-                <h2 className="font-display text-lg font-bold text-zinc-900">Configuration</h2>
+                <h2 className="font-display text-lg font-semibold text-zinc-900">Configuration</h2>
                 <ul className="mt-4 space-y-2 text-sm text-zinc-600">
                   <li>{event.tracks.length} tracks</li>
                   <li>{event.prizes.length} prizes</li>
@@ -170,7 +170,7 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
                 </ul>
                 <a
                   href={`/api/export.csv?event=${event.slug}`}
-                  className="mt-5 inline-flex text-sm font-semibold text-violet-700 hover:underline"
+                  className="mt-5 inline-flex text-sm font-semibold text-brand-700 hover:underline"
                 >
                   Download scores CSV →
                 </a>
@@ -185,9 +185,9 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">{label}</p>
-      <p className="font-display mt-3 text-3xl font-bold text-zinc-950">{value}</p>
+      <p className="font-display mt-3 text-3xl font-semibold text-ink">{value}</p>
     </div>
   );
 }

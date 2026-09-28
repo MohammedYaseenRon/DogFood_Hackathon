@@ -37,7 +37,7 @@ const PRIMARY_ROLES: RoleCard[] = [
     role: "PARTICIPANT",
     desc: "Join a team, submit projects, and edit until the deadline",
     href: "/participant",
-    iconBg: "bg-orange-500",
+    iconBg: "bg-amber-500",
     badge: "warning",
     sessionKey: "prt_2e88",
   },
@@ -122,7 +122,7 @@ export function LoginDemoRoles({ redirectTo }: { redirectTo?: string }) {
         <p className="text-xs font-bold tracking-[0.16em] text-zinc-400 uppercase">
           Demo access
         </p>
-        <h2 className="font-display mt-1 text-xl font-bold text-zinc-900">
+        <h2 className="font-display mt-1 text-xl font-semibold text-zinc-900">
           Pick a role to explore
         </h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -137,7 +137,7 @@ export function LoginDemoRoles({ redirectTo }: { redirectTo?: string }) {
             type="button"
             onClick={() => login(role.sessionKey, role.label, role.href)}
             disabled={loading !== null}
-            className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-[#fafafa] p-4 text-left transition hover:border-zinc-300 hover:bg-white hover:shadow-sm disabled:opacity-60"
+            className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-canvas p-4 text-left transition hover:border-zinc-300 hover:bg-white hover:shadow-sm disabled:opacity-60"
           >
             <div
               className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${role.iconBg} text-sm font-bold text-white`}
@@ -163,7 +163,7 @@ export function LoginDemoRoles({ redirectTo }: { redirectTo?: string }) {
           </button>
         ))}
 
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-[#fafafa] sm:col-span-2">
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-canvas sm:col-span-2">
           <button
             type="button"
             onClick={() => setJudgeExpanded((v) => !v)}

@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { phaseInfo } from "@/lib/format";
+import { Eyebrow, MarkedTitle } from "@/components/ui/MarkedTitle";
 
 type PaceFilter = "all" | "behind" | "active" | "done";
 type SortKey = "pace" | "name" | "remaining";
@@ -162,7 +163,7 @@ export function OrganizerDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -171,8 +172,8 @@ export function OrganizerDashboard() {
     return (
       <main className="min-h-screen bg-zinc-50/80 pb-16">
         <section className="mx-auto max-w-3xl px-6 py-16">
-          <div className="rounded-[24px] border border-zinc-200 bg-white p-8 text-center shadow-sm">
-            <h1 className="font-display text-2xl font-bold text-zinc-950">No events yet</h1>
+          <div className="rounded-2xl border border-line bg-white p-8 text-center ">
+            <h1 className="font-display text-2xl font-semibold text-ink">No events yet</h1>
             <p className="mt-2 text-sm text-zinc-500">Create your first hackathon to open registration.</p>
             <ButtonLink href="/organizer/event/new" className="mt-6">
               Create event
@@ -188,10 +189,10 @@ export function OrganizerDashboard() {
       <main className="min-h-screen bg-zinc-50/80 pb-16">
         <div className="border-b border-zinc-200 bg-white">
           <div className="mx-auto max-w-6xl px-6 py-8">
-            <p className="text-xs font-semibold tracking-[0.18em] text-violet-600 uppercase">
+            <p className="text-xs font-semibold tracking-[0.18em] text-brand-600 uppercase">
               Organizer
             </p>
-            <h1 className="font-display mt-2 text-3xl font-bold text-zinc-950">
+            <h1 className="font-display mt-2 text-3xl font-semibold text-ink">
               Organizer access needed
             </h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-500">
@@ -200,7 +201,7 @@ export function OrganizerDashboard() {
           </div>
         </div>
         <section className="mx-auto max-w-3xl px-6 py-12">
-          <div className="rounded-[24px] border border-zinc-200 bg-white p-8 shadow-sm">
+          <div className="rounded-2xl border border-line bg-white p-8 ">
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/login?mode=organizer&redirect=/organizer/dashboard">
                 Sign in as organizer
@@ -231,30 +232,24 @@ export function OrganizerDashboard() {
   ];
 
   return (
-    <main className="min-h-screen pb-20">
-      <div className="relative overflow-hidden border-b border-white/60 bg-gradient-to-br from-violet-50 via-white to-indigo-50/80">
-        <div className="page-dot-grid absolute inset-0 opacity-50" />
-        <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-violet-300/25 blur-3xl" />
-        <div className="relative mx-auto flex max-w-7xl flex-col gap-5 px-6 py-10 lg:flex-row lg:items-end lg:justify-between lg:py-12">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-bold tracking-[0.2em] text-violet-600 uppercase">
-                Organizer
-              </p>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                {refreshing ? "Refreshing…" : "Auto-refresh 20s"}
-              </span>
-            </div>
-            <h1 className="font-display mt-3 text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl">
-              {eventName}
+    <main className="pb-24">
+      <header className="relative">
+        <div aria-hidden className="graph-paper absolute inset-0" />
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-6 px-5 pb-10 pt-12 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:pt-16">
+          <div className="max-w-3xl">
+            <Eyebrow>Organizer / judging ops</Eyebrow>
+            <h1 className="font-display mt-4 text-[1.9rem] leading-[1.12] font-semibold text-ink sm:text-[2.6rem]">
+              <MarkedTitle text={eventName} />
             </h1>
-            <p className="mt-3 max-w-xl text-base leading-relaxed text-zinc-600">
-              Track scoring in real time, spot judges who are falling behind, and
-              export results when the room is ready.
+            <p className="mt-4 flex flex-wrap items-center gap-2 text-base text-zinc-600">
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-zinc-500">
+                <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${refreshing ? "bg-signal-400" : "bg-emerald-500"}`} />
+                {refreshing ? "refreshing…" : "live · refreshes every 20s"}
+              </span>
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 lg:items-end">
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-600">
+            <label className="flex items-center gap-2 font-mono text-xs text-zinc-500 uppercase">
               Event
               <select
                 value={selected ?? ""}
@@ -262,7 +257,7 @@ export function OrganizerDashboard() {
                   setSelected(e.target.value);
                   setRefreshing(true);
                 }}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none focus:border-violet-400"
+                className="h-9 rounded-lg border border-line bg-white px-3 font-sans text-sm font-semibold text-ink normal-case outline-none focus:border-brand-500"
               >
                 {(events ?? []).map((event) => (
                   <option key={event.slug} value={event.slug}>
@@ -274,22 +269,22 @@ export function OrganizerDashboard() {
             <div className="flex flex-wrap gap-2">
               <a
                 href={`/api/export.csv?event=${encodeURIComponent(eventSlug)}`}
-                className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-ink px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700"
               >
                 Download CSV
               </a>
               <ButtonLink href={`/organizer/events/${eventSlug}`} variant="secondary" size="sm">
                 Manage event
               </ButtonLink>
-              <ButtonLink href="/organizer/event/new" variant="secondary" size="sm">
+              <ButtonLink href="/organizer/event/new" variant="signal" size="sm">
                 + New event
               </ButtonLink>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <section className="page-surface relative mx-auto max-w-7xl px-6 py-8">
+      <section className="relative mx-auto max-w-7xl px-5 sm:px-6">
         <EventsTable events={events ?? []} selected={eventSlug} />
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -317,10 +312,10 @@ export function OrganizerDashboard() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
-          <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-line bg-white ">
             <div className="flex flex-col gap-4 border-b border-zinc-100 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-zinc-950">
+                <h2 className="font-display text-xl font-semibold text-ink">
                   Judge roster
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500">
@@ -331,7 +326,7 @@ export function OrganizerDashboard() {
                 <select
                   value={sortKey}
                   onChange={(event) => setSortKey(event.target.value as SortKey)}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-violet-400"
+                  className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-brand-400"
                 >
                   <option value="pace">Sort by slowest</option>
                   <option value="remaining">Sort by remaining</option>
@@ -353,7 +348,7 @@ export function OrganizerDashboard() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search judges by name or email"
-                className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-violet-400 focus:bg-white"
+                className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-brand-400 focus:bg-white"
               />
               <div className="flex flex-wrap gap-2">
                 {filters.map((item) => {
@@ -392,12 +387,12 @@ export function OrganizerDashboard() {
                       className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 font-display text-sm font-bold text-violet-700">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-100 font-display text-sm font-semibold text-brand-700">
                           {initials(judge.name)}
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="truncate font-semibold text-zinc-950">
+                            <h3 className="truncate font-semibold text-ink">
                               {judge.name}
                             </h3>
                             <StatusChip status={status} />
@@ -420,7 +415,7 @@ export function OrganizerDashboard() {
                                 ? "bg-emerald-500"
                                 : status === "behind"
                                   ? "bg-amber-500"
-                                  : "bg-gradient-to-r from-violet-600 to-cyan-500"
+                                  : "bg-ink"
                             }`}
                             style={{ width: `${Math.min(judge.percent, 100)}%` }}
                           />
@@ -434,8 +429,8 @@ export function OrganizerDashboard() {
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm">
-              <h2 className="font-display text-lg font-bold text-zinc-950">
+            <div className="rounded-2xl border border-line bg-white p-5 ">
+              <h2 className="font-display text-lg font-semibold text-ink">
                 Needs attention
               </h2>
               <p className="mt-1 text-sm text-zinc-500">
@@ -467,8 +462,8 @@ export function OrganizerDashboard() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-zinc-200 bg-zinc-950 p-5 text-white shadow-sm">
-              <h2 className="font-display text-lg font-bold">Event pulse</h2>
+            <div className="rounded-2xl bg-ink p-5 text-white">
+              <h2 className="font-display text-lg font-semibold">Event pulse</h2>
               <dl className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-zinc-400">Submission window</dt>
@@ -510,10 +505,10 @@ export function OrganizerDashboard() {
 
 function EventsTable({ events, selected }: { events: OrganizerEvent[]; selected: string }) {
   return (
-    <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white ">
       <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
         <div>
-          <h2 className="font-display text-xl font-bold text-zinc-950">Your events</h2>
+          <h2 className="font-display text-xl font-semibold text-ink">Your events</h2>
           <p className="mt-1 text-sm text-zinc-500">Every event on this portal, latest deadline first.</p>
         </div>
       </div>
@@ -538,12 +533,12 @@ function EventsTable({ events, selected }: { events: OrganizerEvent[]; selected:
               return (
                 <tr
                   key={event.slug}
-                  className={`border-t border-zinc-100 ${event.slug === selected ? "bg-violet-50/50" : ""}`}
+                  className={`border-t border-zinc-100 ${event.slug === selected ? "bg-brand-50/50" : ""}`}
                 >
                   <td className="px-5 py-3">
                     <Link
                       href={`/organizer/events/${event.slug}`}
-                      className="font-semibold text-zinc-900 hover:text-violet-700"
+                      className="font-semibold text-zinc-900 hover:text-brand-700"
                     >
                       {event.name}
                     </Link>
@@ -565,7 +560,7 @@ function EventsTable({ events, selected }: { events: OrganizerEvent[]; selected:
                   <td className="px-5 py-3 text-right whitespace-nowrap">
                     <Link
                       href={`/organizer/events/${event.slug}/edit`}
-                      className="text-sm font-semibold text-violet-700 hover:underline"
+                      className="text-sm font-semibold text-brand-700 hover:underline"
                     >
                       Edit
                     </Link>
@@ -592,18 +587,14 @@ function MetricCard({
   accent?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-[24px] border p-5 shadow-sm ${
-        accent
-          ? "border-amber-200 bg-amber-50"
-          : "border-zinc-200 bg-white"
-      }`}
-    >
-      <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
+    <div className={`rounded-2xl p-5 ${accent ? "bg-ink text-white" : "border border-line bg-white text-ink"}`}>
+      <p className={`font-mono text-[11px] tracking-[0.14em] uppercase ${accent ? "text-white/55" : "text-zinc-500"}`}>
         {label}
       </p>
-      <p className="font-display mt-3 text-3xl font-bold text-zinc-950">{value}</p>
-      <p className="mt-1 text-sm text-zinc-500">{hint}</p>
+      <p className={`font-display mt-3 text-3xl font-semibold tabular-nums ${accent ? "text-signal-300" : "text-ink"}`}>
+        {value}
+      </p>
+      <p className={`mt-1 text-sm ${accent ? "text-white/65" : "text-zinc-500"}`}>{hint}</p>
     </div>
   );
 }
@@ -612,7 +603,7 @@ function StatusChip({ status }: { status: "idle" | "behind" | "active" | "done" 
   const styles = {
     idle: "bg-zinc-100 text-zinc-600",
     behind: "bg-amber-100 text-amber-800",
-    active: "bg-violet-100 text-violet-700",
+    active: "bg-brand-100 text-brand-700",
     done: "bg-emerald-100 text-emerald-800",
   };
   const labels = {

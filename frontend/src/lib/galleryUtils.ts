@@ -10,22 +10,20 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
-const THUMBNAIL_GRADIENTS = [
-  "from-violet-500 via-purple-500 to-fuchsia-500",
-  "from-blue-500 via-indigo-500 to-violet-600",
-  "from-cyan-500 via-teal-500 to-emerald-500",
-  "from-orange-400 via-rose-500 to-pink-500",
-  "from-amber-400 via-orange-500 to-red-500",
-  "from-sky-400 via-blue-500 to-indigo-600",
-  "from-lime-400 via-green-500 to-teal-600",
-  "from-fuchsia-500 via-pink-500 to-rose-500",
+/** Flat cover tiles drawn from the palette: [background, text]. */
+const COVERS: Array<{ bg: string; fg: string }> = [
+  { bg: "bg-ink", fg: "text-signal-300" },
+  { bg: "bg-zinc-100", fg: "text-ink" },
+  { bg: "bg-signal-100", fg: "text-ink" },
+  { bg: "bg-brand-50", fg: "text-brand-700" },
 ];
 
-/** Placeholder art for projects without a thumbnail. */
-export function projectThumbnail(project: Pick<ProjectSummary, "id">) {
-  return {
-    gradient: THUMBNAIL_GRADIENTS[hashString(project.id) % THUMBNAIL_GRADIENTS.length],
-  };
+/** Placeholder cover for projects without a thumbnail — stable per project. */
+export function projectThumbnail(project: Pick<ProjectSummary, "id" | "title">) {
+  const cover = COVERS[hashString(project.id) % COVERS.length];
+  const words = project.title.split(/\s+/).filter(Boolean);
+  const monogram = ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase() || "?";
+  return { ...cover, monogram };
 }
 
 /** Turn YouTube / Vimeo / Loom links into an embeddable player URL. */

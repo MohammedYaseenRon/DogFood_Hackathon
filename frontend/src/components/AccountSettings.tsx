@@ -46,7 +46,7 @@ export function AccountSettings() {
   if (!user) {
     return (
       <Card variant="elevated" className="mx-auto max-w-lg text-center">
-        <p className="font-display text-lg font-bold text-zinc-900">Sign in to manage your account</p>
+        <p className="font-display text-lg font-semibold text-zinc-900">Sign in to manage your account</p>
         <ButtonLink href={loginHref("/account")} className="mt-5">
           Sign in
         </ButtonLink>
@@ -96,7 +96,7 @@ export function AccountSettings() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
         <Card variant="elevated">
-          <h2 className="font-display text-lg font-bold text-zinc-900">Profile</h2>
+          <h2 className="font-display text-lg font-semibold text-zinc-900">Profile</h2>
           <form onSubmit={saveProfile} className="mt-5 space-y-4">
             <div>
               <label htmlFor="account-name" className="mb-2 block text-sm font-semibold text-zinc-700">
@@ -124,7 +124,7 @@ export function AccountSettings() {
         </Card>
 
         <Card variant="elevated">
-          <h2 className="font-display text-lg font-bold text-zinc-900">Password</h2>
+          <h2 className="font-display text-lg font-semibold text-zinc-900">Password</h2>
           <form onSubmit={savePassword} className="mt-5 space-y-4">
             <div>
               <label htmlFor="pw-current" className="mb-2 block text-sm font-semibold text-zinc-700">
@@ -183,7 +183,7 @@ export function AccountSettings() {
       <aside className="space-y-4">
         <Card>
           <p className="text-xs font-semibold tracking-[0.16em] text-zinc-400 uppercase">Signed in as</p>
-          <p className="font-display mt-2 text-lg font-bold text-zinc-900">{user.name || user.email}</p>
+          <p className="font-display mt-2 text-lg font-semibold text-zinc-900">{user.name || user.email}</p>
           <p className="text-sm text-zinc-500">{user.email}</p>
           <div className="mt-3">
             <Badge tone="brand">{user.role}</Badge>

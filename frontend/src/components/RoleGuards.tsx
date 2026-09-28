@@ -88,7 +88,7 @@ function GateAside({
         {items.map((item) => (
           <div
             key={item.title}
-            className="rounded-xl border border-zinc-100 bg-[#fafafa] p-4"
+            className="rounded-xl border border-zinc-100 bg-canvas p-4"
           >
             <p className="font-semibold text-zinc-900">{item.title}</p>
             <p className="mt-1 text-sm text-zinc-500">{item.body}</p>
@@ -162,7 +162,7 @@ export function ParticipantGate({
       }
     >
       <div className="space-y-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-xl">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-xl">
           🔒
         </div>
         <div className="flex flex-wrap gap-3">

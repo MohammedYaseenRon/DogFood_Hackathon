@@ -4,7 +4,9 @@ import { EventRegisterButton } from "@/components/EventRegisterButton";
 import { OrganizerOnly } from "@/components/RoleGuards";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { formatDateTime, phaseInfo, relativeTime } from "@/lib/format";
+import { Countdown } from "@/components/ui/Countdown";
+import { Eyebrow } from "@/components/ui/MarkedTitle";
+import { formatDateTime, phaseInfo } from "@/lib/format";
 import { fetchEventBySlug } from "@/lib/server-api";
 
 type EventSlugPageProps = {
@@ -28,234 +30,218 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
     { label: "Registration closes", at: event.registrationCloses },
     { label: "Hacking starts", at: event.eventStarts },
     { label: "Hacking ends", at: event.eventEnds },
-    { label: "Submission deadline", at: event.submissionsClose },
+    { label: "Submission deadline", at: event.submissionsClose, key: true },
     { label: "Judging starts", at: event.judgingStarts },
     { label: "Judging ends", at: event.judgingEnds },
     { label: "Results announced", at: event.resultsAt },
   ]
-    .filter((item): item is { label: string; at: string } => Boolean(item.at))
+    .filter((item): item is { label: string; at: string; key?: boolean } => Boolean(item.at))
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const deadlinePassed = new Date(event.submissionsClose).getTime() < now;
 
   return (
-    <main className="min-h-screen bg-[#0b1020] text-white">
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(124,58,237,0.45),_transparent_50%),radial-gradient(ellipse_at_bottom_left,_rgba(14,165,233,0.25),_transparent_45%)]" />
-        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
-
-        <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-12 lg:pb-20 lg:pt-16">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-violet-200 backdrop-blur">
-              Hackathon
-            </span>
+    <main className="pb-24">
+      <section className="relative overflow-hidden bg-ink text-white">
+        <div aria-hidden className="graph-paper-dark absolute inset-0" />
+        <div className="relative mx-auto max-w-7xl px-5 pb-14 pt-14 sm:px-6 lg:pb-16 lg:pt-20">
+          <div className="flex flex-wrap items-center gap-3">
+            <Eyebrow dark>Event</Eyebrow>
             <Badge tone={phase.tone}>{phase.label}</Badge>
             {!event.published ? <Badge tone="warning">Hidden from public</Badge> : null}
           </div>
 
-          <h1 className="font-display mt-5 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-            {event.name}
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-zinc-300">
-            {event.shortDescription ||
-              "Build something ambitious. Form a team. Ship before the deadline."}
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#register"
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition hover:scale-[1.02]"
-            >
-              {event.state.registrationOpen ? "Register to participate →" : "Your participation →"}
-            </a>
-            <ButtonLink href={`/projects?event=${event.slug}`} variant="outline" size="md">
-              Browse projects
-            </ButtonLink>
-            <OrganizerOnly>
-              <ButtonLink href={`/organizer/events/${event.slug}`} variant="outline" size="md">
-                Manage event
-              </ButtonLink>
-            </OrganizerOnly>
-          </div>
-
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <HeroStat
-              label={deadlinePassed ? "Submissions closed" : "Submissions close"}
-              value={formatDateTime(event.submissionsClose)}
-              hint={relativeTime(event.submissionsClose, now)}
-              small
-            />
-            <HeroStat label="Tracks" value={String(event.tracks.length)} />
-            <HeroStat label="Prizes" value={String(event.prizes.length)} />
-            <HeroStat label="Team size" value={`1–${event.maxTeamSize}`} />
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-t-[2.5rem] bg-[#f4f6fb] pb-20 pt-12 text-zinc-900">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-12">
-            {event.description ? (
-              <div>
-                <h2 className="font-display text-2xl font-bold">About</h2>
-                <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-zinc-700">
-                  {event.description}
-                </p>
-              </div>
-            ) : null}
-
+          <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <h2 className="font-display text-2xl font-bold">Timeline</h2>
-              <p className="mt-1 text-sm text-zinc-500">Shown in your local time.</p>
-              <ol className="relative mt-8 border-l-2 border-violet-200 pl-8">
-                {timeline.map((item, index) => {
-                  const past = new Date(item.at).getTime() <= now;
-                  return (
-                    <li key={item.label} className="relative pb-8 last:pb-0">
-                      <span
-                        className={`absolute -left-[41px] flex h-6 w-6 items-center justify-center rounded-full border-4 border-white text-[10px] font-bold text-white shadow ${
-                          past ? "bg-zinc-400" : "bg-violet-600"
-                        }`}
-                      >
-                        {index + 1}
-                      </span>
-                      <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                        {item.label}
-                      </p>
-                      <p className={`mt-1 text-base font-semibold ${past ? "text-zinc-500" : "text-zinc-900"}`}>
-                        {formatDateTime(item.at)}{" "}
-                        <span className="text-sm font-normal text-zinc-400">· {relativeTime(item.at, now)}</span>
-                      </p>
-                    </li>
-                  );
-                })}
-              </ol>
+              <h1 className="font-display max-w-4xl text-4xl leading-[1.05] font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+                {event.name}
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-white/70">
+                {event.shortDescription || "Form a team, ship a project, and get judged before the deadline."}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href="#participate"
+                  className="inline-flex h-12 items-center rounded-lg bg-signal-300 px-6 text-[15px] font-semibold text-ink transition hover:bg-signal-400"
+                >
+                  {event.state.registrationOpen ? "Register to participate" : "Your participation"}
+                </a>
+                <ButtonLink href={`/projects?event=${event.slug}`} variant="outline" size="lg">
+                  Browse projects
+                </ButtonLink>
+                <OrganizerOnly>
+                  <ButtonLink href={`/organizer/events/${event.slug}`} variant="outline" size="lg">
+                    Manage event
+                  </ButtonLink>
+                </OrganizerOnly>
+              </div>
             </div>
 
-            {event.prizes.length > 0 ? (
-              <div>
-                <h2 className="font-display text-2xl font-bold">Prizes</h2>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  {event.prizes.map((prize, i) => (
-                    <div
-                      key={prize.id}
-                      className={`relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm ${
-                        i === 0 ? "bg-gradient-to-br from-amber-50 to-white sm:col-span-2" : ""
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-zinc-500">{prize.name}</p>
-                      <p className="font-display mt-2 text-3xl font-extrabold text-violet-700">
-                        {prize.amount}
-                      </p>
-                      <p className="mt-2 text-xs text-zinc-400">
-                        {prize.trackName ? `Track · ${prize.trackName}` : "Overall"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+            <div className="rounded-2xl border border-white/15 bg-white/[0.05] p-6 lg:min-w-[300px]">
+              <p className="font-mono text-[11px] tracking-[0.14em] text-white/50 uppercase">
+                {deadlinePassed ? "Submissions closed" : "Submissions close in"}
+              </p>
+              <div className="mt-3">
+                <Countdown to={event.submissionsClose} tone="dark" className="text-base" closedLabel="Deadline passed" />
               </div>
-            ) : null}
-
-            <div>
-              <h2 className="font-display text-2xl font-bold">Tracks</h2>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {event.tracks.map((track) => (
-                  <Link
-                    key={track.id}
-                    href={`/projects?event=${event.slug}&track=${track.id}`}
-                    className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white">
-                      {track.name.slice(0, 1)}
-                    </div>
-                    <p className="mt-3 font-semibold text-zinc-900">{track.name}</p>
-                    <p className="mt-1 text-sm text-zinc-500">{track.description || "Open track"}</p>
-                  </Link>
+              <p className="mt-3 font-mono text-sm text-white/80">{formatDateTime(event.submissionsClose)}</p>
+              <dl className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-5 font-mono">
+                {[
+                  { label: "tracks", value: event.tracks.length },
+                  { label: "prizes", value: event.prizes.length },
+                  { label: "max team", value: event.maxTeamSize },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <dd className="text-xl font-semibold text-white">{item.value}</dd>
+                    <dt className="text-[10px] tracking-[0.12em] text-white/45 uppercase">{item.label}</dt>
+                  </div>
                 ))}
-              </div>
+              </dl>
             </div>
-
-            {event.rubric.length > 0 ? (
-              <div>
-                <h2 className="font-display text-2xl font-bold">Judging rubric</h2>
-                <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-zinc-50 text-left text-zinc-500">
-                      <tr>
-                        <th className="px-6 py-3 font-semibold">Criterion</th>
-                        <th className="px-6 py-3 font-semibold">Weight</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {event.rubric.map((c) => (
-                        <tr key={c.name} className="border-t border-zinc-100">
-                          <td className="px-6 py-4 font-medium capitalize text-zinc-900">{c.name}</td>
-                          <td className="px-6 py-4">
-                            <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
-                              ×{c.weight}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : null}
           </div>
-
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div
-              id="register"
-              className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-300/40"
-            >
-              <div className="bg-gradient-to-br from-violet-600 to-indigo-700 px-6 py-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-200">
-                  Join this hackathon
-                </p>
-                <p className="mt-2 text-lg font-bold">
-                  {event.state.registrationOpen ? "Registration is open" : "Your participation"}
-                </p>
-              </div>
-              <div className="p-6">
-                <EventRegisterButton event={event} />
-                <div className="mt-6 space-y-2 border-t border-zinc-100 pt-5 text-xs text-zinc-500">
-                  <p>
-                    Teams of up to {event.maxTeamSize}. Drafts can be edited until{" "}
-                    <strong className="text-zinc-800">{formatDateTime(event.submissionsClose)}</strong>
-                    ; after that nothing can change.
-                  </p>
-                  <p>
-                    <Link href="/participant" className="font-semibold text-violet-600">
-                      Open your participant hub →
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       </section>
+
+      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 sm:px-6 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-14">
+          {event.description ? (
+            <section>
+              <SectionTitle>About</SectionTitle>
+              <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-relaxed text-zinc-700">
+                {event.description}
+              </p>
+            </section>
+          ) : null}
+
+          <section>
+            <SectionTitle hint="Your local time">Schedule</SectionTitle>
+            <ol className="mt-6 overflow-hidden rounded-2xl border border-line bg-white">
+              {timeline.map((item) => {
+                const past = new Date(item.at).getTime() <= now;
+                return (
+                  <li
+                    key={item.label}
+                    className={`grid grid-cols-[auto_1fr] items-center gap-4 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[auto_1fr_auto] ${
+                      item.key ? "bg-signal-50" : ""
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className={`h-2.5 w-2.5 rounded-full ${past ? "bg-zinc-300" : item.key ? "bg-signal-400 ring-4 ring-signal-100" : "bg-ink"}`}
+                    />
+                    <span className={`font-medium ${past ? "text-zinc-400 line-through decoration-zinc-300" : "text-ink"}`}>
+                      {item.label}
+                    </span>
+                    <span className={`col-start-2 font-mono text-sm sm:col-start-auto ${past ? "text-zinc-400" : "text-zinc-700"}`}>
+                      {formatDateTime(item.at)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          {event.prizes.length > 0 ? (
+            <section>
+              <SectionTitle>Prizes</SectionTitle>
+              <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+                {event.prizes.map((prize, i) => (
+                  <li
+                    key={prize.id}
+                    className={`rounded-2xl border p-6 ${i === 0 ? "border-ink bg-ink text-white sm:col-span-2" : "border-line bg-white"}`}
+                  >
+                    <p className={`font-mono text-[11px] tracking-[0.14em] uppercase ${i === 0 ? "text-white/55" : "text-zinc-500"}`}>
+                      {prize.trackName ? `Track · ${prize.trackName}` : "Overall"}
+                    </p>
+                    <p className={`font-display mt-3 font-semibold ${i === 0 ? "text-4xl text-signal-300" : "text-3xl text-ink"}`}>
+                      {prize.amount}
+                    </p>
+                    <p className={`mt-1 text-sm ${i === 0 ? "text-white/80" : "text-zinc-600"}`}>{prize.name}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section>
+            <SectionTitle>Tracks</SectionTitle>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {event.tracks.map((track) => (
+                <li key={track.id}>
+                  <Link
+                    href={`/projects?event=${event.slug}&track=${track.id}`}
+                    className="group block h-full rounded-xl border border-line bg-white p-5 transition hover:border-ink"
+                  >
+                    <p className="font-semibold text-ink">{track.name}</p>
+                    <p className="mt-1 text-sm text-zinc-500">{track.description || "Open track"}</p>
+                    <p className="mt-4 font-mono text-xs text-brand-700 opacity-0 transition group-hover:opacity-100">
+                      see projects →
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {event.rubric.length > 0 ? (
+            <section>
+              <SectionTitle hint="How judges weigh each score">Judging rubric</SectionTitle>
+              <ul className="mt-6 space-y-3">
+                {(() => {
+                  const total = event.rubric.reduce((sum, c) => sum + c.weight, 0) || 1;
+                  return event.rubric.map((c) => {
+                    const share = Math.round((c.weight / total) * 100);
+                    return (
+                      <li key={c.name} className="rounded-xl border border-line bg-white px-5 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="font-medium capitalize text-ink">{c.name}</span>
+                          <span className="font-mono text-sm text-zinc-600">
+                            ×{c.weight} · {share}%
+                          </span>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                          <div className="h-full rounded-full bg-ink" style={{ width: `${share}%` }} />
+                        </div>
+                      </li>
+                    );
+                  });
+                })()}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div id="participate" className="scroll-mt-24 overflow-hidden rounded-2xl border border-line bg-white">
+            <div className="border-b border-line bg-signal-50 px-6 py-5">
+              <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">Participate</p>
+              <p className="font-display mt-2 text-lg font-semibold text-ink">
+                {event.state.registrationOpen ? "Registration is open" : "Your participation"}
+              </p>
+            </div>
+            <div className="p-6">
+              <EventRegisterButton event={event} />
+              <p className="mt-6 border-t border-line pt-5 text-xs leading-relaxed text-zinc-500">
+                Teams of up to {event.maxTeamSize}. Drafts can be edited until{" "}
+                <span className="font-mono text-zinc-700">{formatDateTime(event.submissionsClose)}</span>; after that
+                nothing can change.{" "}
+                <Link href="/participant" className="font-semibold text-brand-700 hover:underline">
+                  Your hub →
+                </Link>
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
 
-function HeroStat({
-  label,
-  value,
-  hint,
-  small = false,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  small?: boolean;
-}) {
+function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
-      <p className={`font-display mt-1 font-bold text-white ${small ? "text-lg" : "text-3xl"}`}>{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-zinc-400">{hint}</p> : null}
+    <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+      <h2 className="font-display text-xl font-semibold text-ink">{children}</h2>
+      {hint ? <p className="font-mono text-xs text-zinc-400">{hint}</p> : null}
     </div>
   );
 }

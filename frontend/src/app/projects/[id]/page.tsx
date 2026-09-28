@@ -6,7 +6,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
 import { formatDateTime } from "@/lib/format";
-import { projectThumbnail, videoEmbedUrl } from "@/lib/galleryUtils";
+import { videoEmbedUrl } from "@/lib/galleryUtils";
+import { ProjectCover } from "@/components/ProjectCard";
 import { fetchProjectDetail } from "@/lib/server-api";
 
 type ProjectPageProps = {
@@ -23,7 +24,6 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
   const isDraft = project.status === "DRAFT";
   const embed = videoEmbedUrl(project.videoUrl ?? project.demoUrl);
-  const thumb = projectThumbnail(project);
   const links = [
     { href: project.liveUrl, label: "Live demo" },
     { href: project.repoUrl, label: "Source code" },
@@ -82,21 +82,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                 />
               </div>
             ) : (
-              <div className={`aspect-[16/9] bg-gradient-to-br ${thumb.gradient}`}>
-                {project.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={project.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-8 text-center">
-                    <span className="font-display text-4xl font-bold text-white/95 drop-shadow">
-                      {project.title}
-                    </span>
-                  </div>
-                )}
+              <div className="aspect-[16/9]">
+                <ProjectCover project={project} large />
               </div>
             )}
             <div className="p-6">
-              <h2 className="font-display text-xl font-bold text-zinc-900">About this project</h2>
+              <h2 className="font-display text-lg font-semibold text-ink">About this project</h2>
               {project.summary ? (
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
                   {project.summary}
@@ -109,7 +100,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
           {project.imageUrls.length > 0 ? (
             <Card>
-              <h2 className="font-display text-lg font-bold text-zinc-900">Gallery</h2>
+              <h2 className="font-display text-base font-semibold text-ink">Gallery</h2>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {project.imageUrls.map((url, index) => (
                   <li key={url}>
@@ -125,7 +116,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
           {answered.length > 0 ? (
             <Card>
-              <h2 className="font-display text-lg font-bold text-zinc-900">Organizer questions</h2>
+              <h2 className="font-display text-base font-semibold text-ink">Organizer questions</h2>
               <p className="mt-1 text-xs text-zinc-400">Visible to the team, organizers and judges only.</p>
               <dl className="mt-4 space-y-4">
                 {answered.map((question) => (
@@ -141,8 +132,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
         <div className="space-y-6">
           {links.length > 0 ? (
-            <Card variant="elevated">
-              <h2 className="font-display text-lg font-bold text-zinc-900">Links</h2>
+            <Card variant="dark">
+              <h2 className="font-mono text-[11px] tracking-[0.14em] text-white/55 uppercase">Try it</h2>
               <div className="mt-4 flex flex-col gap-3">
                 {links.map((link) => (
                   <a
@@ -150,7 +141,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-violet-700 hover:to-indigo-700"
+                    className="inline-flex h-11 items-center justify-between rounded-lg bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-signal-300 hover:text-ink"
                   >
                     {link.label} ↗
                   </a>
@@ -160,11 +151,11 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           ) : null}
 
           <Card>
-            <h2 className="font-display text-lg font-bold text-zinc-900">Team</h2>
+            <h2 className="font-display text-base font-semibold text-ink">Team</h2>
             <p className="mt-2 text-sm font-semibold text-zinc-700">{project.teamName}</p>
             <ul className="mt-4 space-y-2">
               {project.members.map((member, index) => (
-                <li key={`${member.name}-${index}`} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2.5">
+                <li key={`${member.name}-${index}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
                     {member.email ? <p className="truncate text-xs text-zinc-500">{member.email}</p> : null}
@@ -179,33 +170,33 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             <dl className="space-y-3 text-sm">
               {project.event ? (
                 <div>
-                  <dt className="text-zinc-400">Event</dt>
+                  <dt className="font-mono text-[11px] tracking-[0.12em] text-zinc-400 uppercase">Event</dt>
                   <dd>
-                    <Link href={`/events/${project.event.slug}`} className="font-semibold text-violet-700 hover:underline">
+                    <Link href={`/events/${project.event.slug}`} className="font-semibold text-brand-700 hover:underline">
                       {project.event.name}
                     </Link>
                   </dd>
                 </div>
               ) : null}
               <div>
-                <dt className="text-zinc-400">Track</dt>
+                <dt className="font-mono text-[11px] tracking-[0.12em] text-zinc-400 uppercase">Track</dt>
                 <dd className="font-semibold text-zinc-900">{project.trackName ?? "—"}</dd>
               </div>
               {project.submittedAt ? (
                 <div>
-                  <dt className="text-zinc-400">Submitted</dt>
+                  <dt className="font-mono text-[11px] tracking-[0.12em] text-zinc-400 uppercase">Submitted</dt>
                   <dd className="font-semibold text-zinc-900">{formatDateTime(project.submittedAt)}</dd>
                 </div>
               ) : null}
               {project.techTags.length > 0 ? (
                 <div>
-                  <dt className="text-zinc-400">Built with</dt>
+                  <dt className="font-mono text-[11px] tracking-[0.12em] text-zinc-400 uppercase">Built with</dt>
                   <dd className="mt-2 flex flex-wrap gap-2">
                     {project.techTags.map((tag) => (
                       <Link
                         key={tag}
                         href={`/projects?tag=${encodeURIComponent(tag)}`}
-                        className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+                        className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-700 hover:bg-signal-200"
                       >
                         {tag}
                       </Link>

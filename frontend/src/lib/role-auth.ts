@@ -20,8 +20,8 @@ export const ROLE_AUTH: Record<RoleMode, RoleAuthConfig> = {
     sessionKey: "prt_2e88",
     defaultRedirect: "/participant",
     icon: "P",
-    iconBg: "bg-orange-500",
-    hoverBorder: "hover:border-orange-200 hover:bg-orange-50/40",
+    iconBg: "bg-amber-500",
+    hoverBorder: "hover:border-amber-200 hover:bg-amber-50/40",
     description: "Instant access with a pre-seeded team",
   },
   organizer: {

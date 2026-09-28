@@ -104,7 +104,7 @@ export function AdminDashboard() {
   if (!allowed) {
     return (
       <Card variant="elevated" className="mx-auto max-w-lg text-center">
-        <p className="font-display text-lg font-bold text-zinc-900">Admin access required</p>
+        <p className="font-display text-lg font-semibold text-zinc-900">Admin access required</p>
         <p className="mt-2 text-sm text-zinc-500">Sign in with an admin account to manage users.</p>
         <ButtonLink href={loginHref("/admin", "admin")} className="mt-5">
           Sign in as admin
@@ -127,7 +127,7 @@ export function AdminDashboard() {
           ].map((item) => (
             <Card key={item.label} variant="elevated" className="p-5">
               <p className="text-sm text-zinc-500">{item.label}</p>
-              <p className="font-display mt-1 text-3xl font-bold text-zinc-900">{item.value}</p>
+              <p className="font-display mt-1 text-3xl font-semibold text-zinc-900">{item.value}</p>
               {item.hint ? <p className="text-xs text-zinc-400">{item.hint}</p> : null}
             </Card>
           ))}

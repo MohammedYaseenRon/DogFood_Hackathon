@@ -81,10 +81,10 @@ export function EventRegisterButton({ event }: { event: EventInfo }) {
       );
     }
     return (
-      <div className="space-y-3">
-        <Alert tone="info" title="Registration is open">
+      <div className="space-y-4">
+        <p className="text-sm leading-relaxed text-zinc-600">
           Create an account or sign in, then register to become a participant.
-        </Alert>
+        </p>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={registerHref(here)}>Create account</ButtonLink>
           <ButtonLink href={loginHref(here)} variant="secondary">

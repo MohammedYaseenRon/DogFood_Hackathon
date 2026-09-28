@@ -71,7 +71,7 @@ export function JudgingDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -93,26 +93,26 @@ export function JudgingDashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
             Scored
           </p>
-          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">
+          <p className="font-display mt-2 text-3xl font-semibold text-ink">
             {scored}
             <span className="text-lg font-medium text-zinc-400"> / {total}</span>
           </p>
         </div>
-        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
           <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase">
             Completion
           </p>
-          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">{percent}%</p>
+          <p className="font-display mt-2 text-3xl font-semibold text-ink">{percent}%</p>
         </div>
-        <div className="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold tracking-[0.16em] text-zinc-500 uppercase">
             Remaining
           </p>
-          <p className="font-display mt-2 text-3xl font-bold text-zinc-950">
+          <p className="font-display mt-2 text-3xl font-semibold text-ink">
             {total - scored}
           </p>
         </div>
@@ -126,7 +126,7 @@ export function JudgingDashboard() {
 
       {rubric.length > 0 ? (
         <Card>
-          <h2 className="font-display text-sm font-bold text-zinc-900">
+          <h2 className="font-display text-sm font-semibold text-zinc-900">
             Scoring rubric
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -156,14 +156,14 @@ export function JudgingDashboard() {
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display font-bold text-zinc-900">
+                  <h3 className="font-display font-semibold text-zinc-900">
                     {item.title}
                   </h3>
                   <p className="mt-1 text-sm text-zinc-500">{item.summary}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {score?.weightedTotal != null ? (
-                    <span className="font-display text-lg font-bold text-violet-600">
+                    <span className="font-display text-lg font-semibold text-brand-600">
                       {score.weightedTotal}
                     </span>
                   ) : null}

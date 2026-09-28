@@ -1,159 +1,238 @@
 @import "tailwindcss";
 
+/*
+ * Dogfood design tokens
+ *
+ * ink     #15132B  text, primary actions, the one dark surface
+ * canvas  #F1F2F8  page background (cool fog)
+ * paper   #FFFFFF  cards
+ * signal  #FFD23F  highlighter — the signature mark, used sparingly
+ * brand   cobalt   links, focus, progress
+ *
+ * The zinc scale is re-tuned to cool, ink-tinted neutrals so every existing
+ * `zinc-*` utility sits on-palette. The `brand` scale replaces ad-hoc
+ * violet/indigo/blue accents.
+ */
 @theme {
-  --color-brand: #7c3aed;
-  --color-brand-dark: #6d28d9;
-  --color-brand-light: #ede9fe;
-  --color-accent: #06b6d4;
-  --color-accent-light: #cffafe;
-  --color-surface: #fafafa;
-  --color-surface-dark: #0c0c14;
-  --color-muted: #71717a;
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #15132b;
+  --color-canvas: #f1f2f8;
+  --color-paper: #ffffff;
+  --color-line: #dadde8;
+
+  --color-signal-50: #fffbeb;
+  --color-signal-100: #fff4c7;
+  --color-signal-200: #ffe88a;
+  --color-signal-300: #ffd23f;
+  --color-signal-400: #f5bf12;
+  --color-signal-500: #d9a300;
+  --color-signal-600: #a87c00;
+
+  --color-brand-50: #eef1fe;
+  --color-brand-100: #dce3fd;
+  --color-brand-200: #bcc8fb;
+  --color-brand-300: #8fa3f7;
+  --color-brand-400: #5f7af1;
+  --color-brand-500: #3d5cec;
+  --color-brand-600: #2a4bdf;
+  --color-brand-700: #2139b8;
+  --color-brand-800: #1e3194;
+  --color-brand-900: #1d2d75;
+  --color-brand-950: #141c47;
+
+  --color-zinc-50: #f7f8fb;
+  --color-zinc-100: #eef0f6;
+  --color-zinc-200: #dadde8;
+  --color-zinc-300: #c3c7d6;
+  --color-zinc-400: #8e93a8;
+  --color-zinc-500: #656a81;
+  --color-zinc-600: #4c5068;
+  --color-zinc-700: #363a52;
+  --color-zinc-800: #24263b;
+  --color-zinc-900: #18172e;
+  --color-zinc-950: #100f22;
+
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
-  --muted: #71717a;
-  --card: #ffffff;
-  --border: #e4e4e7;
-  --gradient-start: #7c3aed;
-  --gradient-mid: #6366f1;
-  --gradient-end: #06b6d4;
+  --signal: #ffd23f;
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
-}
-
-.page-surface {
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(124, 58, 237, 0.06) 1px, transparent 0);
-  background-size: 28px 28px;
-}
-
-.page-dot-grid {
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.12) 1px, transparent 0);
-  background-size: 24px 24px;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
 }
 
 .font-display {
   font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
-/* Gradient text utility */
-.gradient-text {
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--gradient-end) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+::selection {
+  background: var(--signal);
+  color: var(--color-ink);
 }
 
-/* Hero mesh background */
-.hero-mesh {
-  background-color: #0c0c14;
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------------
+ * Signature: highlighter swipe, like a judge marking a scoresheet.
+ * Draws in once on load; static under reduced motion.
+ * ------------------------------------------------------------------- */
+.hl {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0.2em,
+    var(--signal) 0.2em,
+    var(--signal) calc(100% - 0.15em),
+    transparent calc(100% - 0.15em)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 0.42em;
+  background-position: 0 88%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0 0.08em;
+  animation: hl-draw 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.15s both;
+}
+
+/* On dark surfaces the swipe covers the whole word so ink text stays legible. */
+.hl-solid {
+  color: var(--color-ink);
+  background-size: 100% 100%;
+  background-position: 0 50%;
+  padding: 0 0.12em;
+  border-radius: 0.08em;
+  animation-name: hl-draw-solid;
+}
+
+@keyframes hl-draw-solid {
+  from {
+    background-size: 0% 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+@keyframes hl-draw {
+  from {
+    background-size: 0% 0.42em;
+  }
+  to {
+    background-size: 100% 0.42em;
+  }
+}
+
+/* Header band: faint graph paper (the scoresheet) that fades out downward. */
+.graph-paper {
+  background-color: var(--color-canvas);
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124, 58, 237, 0.35), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(6, 182, 212, 0.15), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(99, 102, 241, 0.2), transparent);
+    linear-gradient(rgba(21, 19, 43, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 19, 43, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
-/* Subtle grid overlay */
-.grid-overlay {
+/* The same grid on the dark ink surface (event posters, home hero). */
+.graph-paper-dark {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 64px 64px;
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
 }
 
-/* Marquee animation */
+/* Ticket stub: dashed tear line with punched notches top and bottom. */
+.ticket-tear {
+  position: relative;
+  border-left: 2px dashed var(--color-line);
+}
+
+.ticket-tear::before,
+.ticket-tear::after {
+  content: "";
+  position: absolute;
+  left: -11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-line);
+}
+
+.ticket-tear::before {
+  top: -11px;
+  clip-path: inset(50% 0 0 0);
+}
+
+.ticket-tear::after {
+  bottom: -11px;
+  clip-path: inset(0 0 50% 0);
+}
+
+@media (max-width: 767px) {
+  .ticket-tear {
+    border-left: 0;
+    border-top: 2px dashed var(--color-line);
+  }
+  .ticket-tear::before,
+  .ticket-tear::after {
+    display: none;
+  }
+}
+
+/* Marquee (home project strip) */
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
-  animation: marquee 30s linear infinite;
+  animation: marquee 40s linear infinite;
 }
 
-@keyframes marquee-slow {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee-slow {
-  animation: marquee-slow 45s linear infinite;
-}
-
-.animate-marquee-slow:hover {
+.animate-marquee:hover {
   animation-play-state: paused;
 }
 
-/* Fade in up */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out forwards;
-}
-
-.animation-delay-100 { animation-delay: 0.1s; opacity: 0; }
-.animation-delay-200 { animation-delay: 0.2s; opacity: 0; }
-.animation-delay-300 { animation-delay: 0.3s; opacity: 0; }
-.animation-delay-400 { animation-delay: 0.4s; opacity: 0; }
-
-/* Glow effect for cards */
-.glow-card {
-  position: relative;
-}
-
-.glow-card::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(6, 182, 212, 0.2));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.glow-card:hover::before {
-  opacity: 1;
-}
-
-/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f4f4f5;
+  background: var(--color-canvas);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
+  background: var(--color-zinc-300);
+  border-radius: 999px;
+  border: 2px solid var(--color-canvas);
 }

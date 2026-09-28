@@ -8,7 +8,7 @@ import { createTeamClient, type EventInfo } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 
 const inputClass =
-  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10";
+  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10";
 
 export function CreateTeamForm({
   events,

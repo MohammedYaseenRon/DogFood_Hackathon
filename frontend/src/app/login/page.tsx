@@ -66,7 +66,7 @@ function RoleAside({ roleMode }: { roleMode: RoleMode }) {
   const aside = ROLE_ASIDE[roleMode];
   const accent =
     roleMode === "participant"
-      ? "text-orange-600"
+      ? "text-amber-600"
       : roleMode === "judge"
         ? "text-emerald-600"
         : "text-zinc-600";
@@ -77,7 +77,7 @@ function RoleAside({ roleMode }: { roleMode: RoleMode }) {
         <p className={`text-xs font-bold tracking-[0.16em] uppercase ${accent}`}>
           {aside.eyebrow}
         </p>
-        <h2 className="font-display mt-2 text-2xl font-bold text-zinc-900">
+        <h2 className="font-display mt-2 text-2xl font-semibold text-zinc-900">
           {aside.title}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-zinc-500">
