@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Countdown } from "@/components/ui/Countdown";
+import { ImageDropzone } from "@/components/ImageDropzone";
 import { FormPageLayout } from "@/components/ui/FormPageLayout";
 import {
   fetchEventClient,
@@ -404,16 +405,45 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
             </section>
 
             <section className="space-y-5">
-              <SectionHeader step={3} title="Media" description="Hosted image links — nothing is uploaded to this server." />
-              <Field label="Thumbnail URL" htmlFor="p-thumb" hint="Shown on the gallery card. 16:10 works best.">
-                <div className="flex gap-3">
-                  <input id="p-thumb" type="url" value={form.thumbnailUrl} onChange={(e) => set("thumbnailUrl", e.target.value)} className={inputClass} placeholder="https://…/cover.png" />
-                  {URL_RE.test(form.thumbnailUrl) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={form.thumbnailUrl} alt="" className="h-12 w-20 shrink-0 rounded-lg border border-line object-cover" />
-                  ) : null}
-                </div>
-              </Field>
+              <SectionHeader step={3} title="Media" description="Upload images, or paste links to images hosted elsewhere." />
+              <div>
+                <p className="field-label">Thumbnail</p>
+                {form.thumbnailUrl ? (
+                  <div className="flex flex-col gap-4 rounded-xl border border-line bg-zinc-50 p-3 sm:flex-row sm:items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.thumbnailUrl} alt="Thumbnail preview" className="aspect-[16/10] w-full rounded-lg border border-line bg-white object-cover sm:w-56" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <p className="truncate font-mono text-xs text-zinc-500">{form.thumbnailUrl}</p>
+                      {!readOnly ? (
+                        <Button type="button" size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => set("thumbnailUrl", "")}>
+                          Remove thumbnail
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <ImageDropzone
+                    label="Upload a thumbnail"
+                    disabled={readOnly}
+                    onUploaded={(url) => setForm((prev) => ({ ...prev, thumbnailUrl: url }))}
+                  />
+                )}
+                {!form.thumbnailUrl ? (
+                  <details className="mt-2 text-sm">
+                    <summary className="cursor-pointer font-medium text-zinc-500 hover:text-ink">Or paste an image link</summary>
+                    <input
+                      id="p-thumb"
+                      aria-label="Thumbnail URL"
+                      type="url"
+                      value={form.thumbnailUrl}
+                      onChange={(e) => set("thumbnailUrl", e.target.value)}
+                      className={`${inputClass} mt-2`}
+                      placeholder="https://…/cover.png"
+                    />
+                  </details>
+                ) : null}
+                <p className="mt-1.5 text-xs text-zinc-400">Shown on the gallery card. 16:10 works best.</p>
+              </div>
               <div>
                 <p className="field-label">
                   Image gallery <span className="font-normal text-zinc-400">({form.imageUrls.length}/{MAX_IMAGES})</span>
@@ -439,25 +469,44 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
                   </ul>
                 ) : null}
                 {form.imageUrls.length < MAX_IMAGES ? (
-                  <div className="flex gap-2">
-                    <input
-                      aria-label="Add image URL"
-                      type="url"
-                      value={imageDraft}
-                      onChange={(e) => setImageDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addImage();
-                        }
-                      }}
-                      className={inputClass}
-                      placeholder="https://…/screenshot.png"
+                  <>
+                    <ImageDropzone
+                      multiple
+                      compact
+                      label="Upload screenshots"
+                      remaining={MAX_IMAGES - form.imageUrls.length}
+                      disabled={readOnly}
+                      onUploaded={(url) =>
+                        setForm((prev) =>
+                          prev.imageUrls.length >= MAX_IMAGES || prev.imageUrls.includes(url)
+                            ? prev
+                            : { ...prev, imageUrls: [...prev.imageUrls, url] },
+                        )
+                      }
                     />
-                    <Button type="button" variant="secondary" onClick={addImage}>
-                      Add
-                    </Button>
-                  </div>
+                    <details className="mt-2 text-sm">
+                      <summary className="cursor-pointer font-medium text-zinc-500 hover:text-ink">Or add an image link</summary>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          aria-label="Add image URL"
+                          type="url"
+                          value={imageDraft}
+                          onChange={(e) => setImageDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addImage();
+                            }
+                          }}
+                          className={inputClass}
+                          placeholder="https://…/screenshot.png"
+                        />
+                        <Button type="button" variant="secondary" onClick={addImage}>
+                          Add
+                        </Button>
+                      </div>
+                    </details>
+                  </>
                 ) : null}
               </div>
               <div>
@@ -533,7 +582,7 @@ export function SubmitForm({ eventSlug }: { eventSlug?: string }) {
           {message ? <Alert tone="success">{message}</Alert> : null}
 
           {!readOnly ? (
-            <div className="sticky bottom-4 z-10 flex flex-col gap-4 rounded-xl border border-line bg-white/90 p-4 shadow-[0_12px_32px_-12px_rgba(21,19,43,0.25)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-zinc-500">
                 {dirty ? <Badge tone="warning">Unsaved changes</Badge> : project ? "All changes saved." : "Nothing saved yet."}
               </p>

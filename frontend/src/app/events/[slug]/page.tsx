@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventRegisterButton } from "@/components/EventRegisterButton";
-import { OrganizerOnly } from "@/components/RoleGuards";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Countdown } from "@/components/ui/Countdown";
 import { Eyebrow } from "@/components/ui/MarkedTitle";
 import { formatDateTime, phaseInfo } from "@/lib/format";
-import { fetchEventBySlug } from "@/lib/server-api";
+import { fetchEventBySlug, fetchMe } from "@/lib/server-api";
 
 type EventSlugPageProps = {
   params: Promise<{ slug: string }>;
@@ -15,7 +14,7 @@ type EventSlugPageProps = {
 
 export default async function EventSlugPage({ params }: EventSlugPageProps) {
   const { slug } = await params;
-  const event = await fetchEventBySlug(slug);
+  const [event, me] = await Promise.all([fetchEventBySlug(slug), fetchMe()]);
 
   if (!event) {
     notFound();
@@ -39,6 +38,9 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const deadlinePassed = new Date(event.submissionsClose).getTime() < now;
+  // Staff and judges can't take part, so they get their own tools instead of "Register".
+  const isStaff = me?.role === "ORGANIZER" || me?.role === "ADMIN";
+  const isJudge = me?.role === "JUDGE";
 
   return (
     <main className="pb-24">
@@ -60,20 +62,30 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                 {event.shortDescription || "Form a team, ship a project, and get judged before the deadline."}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a
-                  href="#participate"
-                  className="inline-flex h-12 items-center rounded-lg bg-signal-300 px-6 text-[15px] font-semibold text-ink transition hover:bg-signal-400"
-                >
-                  {event.state.registrationOpen ? "Register to participate" : "Your participation"}
-                </a>
+                {isStaff ? (
+                  <>
+                    <ButtonLink href={`/organizer/events/${event.slug}`} variant="signal" size="lg">
+                      Manage event
+                    </ButtonLink>
+                    <ButtonLink href={`/organizer/events/${event.slug}/judging`} variant="outline" size="lg">
+                      Judging console
+                    </ButtonLink>
+                  </>
+                ) : isJudge ? (
+                  <ButtonLink href="/judging" variant="signal" size="lg">
+                    Judge dashboard
+                  </ButtonLink>
+                ) : (
+                  <a
+                    href="#participate"
+                    className="inline-flex h-12 items-center rounded-lg bg-signal-300 px-6 text-[15px] font-semibold text-ink transition hover:bg-signal-400"
+                  >
+                    {event.state.registrationOpen ? "Register to participate" : "Your participation"}
+                  </a>
+                )}
                 <ButtonLink href={`/projects?event=${event.slug}`} variant="outline" size="lg">
                   Browse projects
                 </ButtonLink>
-                <OrganizerOnly>
-                  <ButtonLink href={`/organizer/events/${event.slug}`} variant="outline" size="lg">
-                    Manage event
-                  </ButtonLink>
-                </OrganizerOnly>
               </div>
             </div>
 

@@ -160,4 +160,6 @@ All calendar checks live in `backend/app/services/event_state.py`, so the API an
 - A team has one project per event. A **draft** needs only a name and track and is hidden from the public.
   **Submitting** additionally requires a description, a repository URL and every required organizer question.
 - Organizer question answers are visible to the team, organizers and the judges assigned to that project, never on the public page.
-- All URLs must be `http(s)://`; up to 8 screenshot URLs and 15 tech tags.
+- All URLs must be `http(s)://`; up to 8 screenshots and 15 tech tags.
+- The thumbnail and screenshots can be **uploaded** (PNG, JPEG, WebP or GIF, 5 MB max, type checked from the file's
+  bytes) or linked. Uploads are stored in `backend/data/uploads` (override with `UPLOAD_DIR`).

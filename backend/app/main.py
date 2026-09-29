@@ -18,6 +18,7 @@ from app.routes import (
     participant,
     projects,
     teams,
+    uploads,
 )
 from app.seed import seed
 
@@ -58,6 +59,7 @@ app.include_router(invites.router)
 app.include_router(organizer.router)
 app.include_router(judging_admin.router)
 app.include_router(judge_invites.router)
+app.include_router(uploads.router)
 app.include_router(admin.router)
 app.include_router(participant.router)
 
