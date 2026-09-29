@@ -17,6 +17,8 @@ router = APIRouter(prefix="/api/organizer/events/{slug}/audit", tags=["audit"])
 LABELS = {
     "event.created": ("Event created", "setup"),
     "event.updated": ("Event settings changed", "setup"),
+    "event.imported": ("Event imported", "setup"),
+    "event.exported": ("Event exported", "setup"),
     "rubric.updated": ("Rubric changed", "judging"),
     "judge.invited": ("Judge invited", "judging"),
     "judge.invite_revoked": ("Judge invite revoked", "judging"),
@@ -49,6 +51,9 @@ LABELS = {
 
 
 def _summary(action: str, meta: dict) -> str:
+    if action == "event.imported":
+        source = f" from {meta['source']}" if meta.get("source") else ""
+        return f"{meta.get('projects', 0)} projects, {meta.get('scores', 0)} scores{source}"
     if action == "vote.cast":
         return f"{meta.get('voter', 'A voter')} backed {meta.get('projects', 0)} projects ({meta.get('spent', 0)} spent)"
     if action in ("vote.voided", "vote.restored"):

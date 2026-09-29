@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, init_db
 from app.models import (
+    AuditLog,
     CustomQuestion,
     Event,
     EventJudge,
@@ -240,6 +241,29 @@ def seed_community(db: Session, event: Event) -> None:
     if db.query(VotingConfig).filter(VotingConfig.event_id == event.id).first():
         return
     now = datetime.utcnow().replace(second=0, microsecond=0)
+    organizer = db.query(User).filter(User.email == "organizer@dogfood.local").first()
+
+    def audit(action: str, at: datetime, *, actor_id: str | None, resource_type: str,
+              resource_id: str | None, metadata: dict) -> None:
+        # The seeded history goes into the audit trail like real activity, so
+        # the organizer's audit page is readable from the first boot.
+        db.add(AuditLog(id=new_id(), actor_id=actor_id, action=action, resource_type=resource_type,
+                        resource_id=resource_id, metadata_json=json.dumps(metadata),
+                        event_id=event.id, created_at=at))
+
+    submitted = (
+        db.query(Project).join(Project.team)
+        .filter(Team.event_id == event.id, Project.status == ProjectStatus.SUBMITTED).count()
+    )
+    audit("event.imported", now - timedelta(days=1, minutes=5), actor_id=organizer.id if organizer else None,
+          resource_type="event", resource_id=event.fixture_id,
+          metadata={"source": "fixtures.json", "projects": submitted,
+                    "scores": db.query(Score).join(Score.project).join(Project.team)
+                    .filter(Team.event_id == event.id).count()})
+    audit("voting.configured", now - timedelta(days=1), actor_id=organizer.id if organizer else None,
+          resource_type="event", resource_id=event.fixture_id,
+          metadata={"enabled": {"from": False, "to": True}, "mode": {"from": None, "to": "quadratic"},
+                    "access": {"from": None, "to": "authenticated"}})
     db.add(
         VotingConfig(
             event_id=event.id,
@@ -278,6 +302,7 @@ def seed_community(db: Session, event: Event) -> None:
         db.add(voter)
         db.flush()
         budget = 25
+        chosen: list[int] = []
         picks = rng.sample([p for p in favourites if p in eligible], k=min(2, len([p for p in favourites if p in eligible])))
         picks += rng.sample([p for p in eligible if p not in picks], k=3)
         for project in picks:
@@ -285,16 +310,25 @@ def seed_community(db: Session, event: Event) -> None:
                 break
             credits = min(budget, rng.choice([1, 4, 4, 9, 9, 16]))
             budget -= credits
+            chosen.append(credits)
             db.add(VoteAllocation(voter_id=voter.id, project_id=project.id, credits=credits,
                                   shown_position=rng.randint(1, len(projects))))
+        member = db.get(User, user_id)
+        audit("vote.cast", voter.created_at, actor_id=user_id, resource_type="voter", resource_id=voter.id,
+              metadata={"voter": member.email if member else "voter", "projects": len(chosen),
+                        "spent": sum(chosen)})
 
     commenters = list(team_of)[45:60]
     for index, user_id in enumerate(commenters):
         project = projects[(index * 7) % len(projects)]
         if project.team_id == team_of[user_id]:
             continue
-        db.add(Comment(project_id=project.id, user_id=user_id, body=COMMENTS[index % len(COMMENTS)],
-                       created_at=now - timedelta(hours=index + 1)))
+        comment = Comment(project_id=project.id, user_id=user_id, body=COMMENTS[index % len(COMMENTS)],
+                          created_at=now - timedelta(hours=index + 1))
+        db.add(comment)
+        db.flush()
+        audit("comment.created", comment.created_at, actor_id=user_id, resource_type="project",
+              resource_id=project.fixture_id, metadata={"comment": comment.id, "preview": comment.body[:80]})
 
 
 def ensure_demo_password(user: User) -> None:
