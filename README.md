@@ -1,6 +1,6 @@
-# Dogfood Portal
+# Hackboard
 
-Open-source hackathon submission and judging platform for [DOGFOOD 2026](https://dogfoodhack.com).
+Open-source hackathon submission and judging platform, built for [DOGFOOD 2026](https://dogfoodhack.com).
 
 ## Structure
 
@@ -121,7 +121,7 @@ cp frontend/.env.example frontend/.env
 | `FIXTURES_PATH` | backend | Path to `dog_food/fixtures.json` for seeding |
 | `APP_BASE_URL` | backend | Public frontend URL used in team invite links |
 | `BACKEND_URL` | frontend | FastAPI base URL for server-side fetches and rewrites |
-| `SEED_PASSWORD` | backend | Password given to seeded demo accounts (default `dogfood-demo`) |
+| `SEED_PASSWORD` | backend | Password given to seeded demo accounts (default `hackboard-demo`) |
 | `DEMO_LOGINS` | backend | `1` (default) enables one-click demo role sessions; set `0` in production |
 
 ## Database setup
@@ -138,7 +138,7 @@ The seed creates two events:
 | Event | Slug | State |
 |-------|------|-------|
 | Sample Hack 2026 (fixture data) | `sample-hack-2026` | Deadline from `fixtures.json` (past) — judging/completed. Used by the acceptance checker. |
-| Dogfood Open Hack | `dogfood-open-hack` | Open for 30 days from first seed — try the full register → team → submit flow here. Dates are only set on first seed, so organizer edits survive re-seeding. |
+| Hackboard Open Hack | `hackboard-open-hack` | Open for 30 days from first seed — try the full register → team → submit flow here. Dates are only set on first seed, so organizer edits survive re-seeding. |
 
 ## Authentication
 
@@ -152,8 +152,8 @@ Email/password auth with server-side sessions (scrypt hashes, 14-day HttpOnly `s
 Roles: `VISITOR → PARTICIPANT` happens automatically when a user registers for an event, creates a team,
 or accepts a team invite. `JUDGE`, `ORGANIZER` and `ADMIN` are assigned by an admin at `/admin`.
 
-Seeded demo accounts can sign in by email with `SEED_PASSWORD` (default `dogfood-demo`):
-`admin@dogfood.local`, `organizer@dogfood.local`, `tomas.varga@example.org` (judge A),
+Seeded demo accounts can sign in by email with `SEED_PASSWORD` (default `hackboard-demo`):
+`admin@hackboard.local`, `organizer@hackboard.local`, `tomas.varga@example.org` (judge A),
 `wei.lindqvist@example.org` (judge B), `priya1@example.org` (participant). The one-click demo roles on
 `/login` use the fixed acceptance-test sessions and are disabled with `DEMO_LOGINS=0`.
 

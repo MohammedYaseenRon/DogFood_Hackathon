@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { PageHeaderBand } from "@/components/ui/PageShell";
 
 export function FormPageLayout({
-  eyebrow = "Dogfood",
+  eyebrow = "Hackboard",
   title,
   mark,
   description,

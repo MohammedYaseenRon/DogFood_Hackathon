@@ -34,11 +34,11 @@ export function Logo({ dark = false }: { dark?: boolean }) {
           dark ? "bg-signal-300 text-ink" : "bg-ink text-signal-300"
         }`}
       >
-        d
+        h
         <span className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ${dark ? "bg-white" : "bg-signal-300"}`} />
       </span>
       <span className={`font-display text-lg font-semibold tracking-tight ${dark ? "text-white" : "text-ink"}`}>
-        dogfood
+        hackboard
       </span>
     </span>
   );
@@ -99,7 +99,7 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-line/80 bg-canvas/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 sm:px-6">
-        <Link href="/" aria-label="Dogfood home" onClick={() => setMobileOpen(false)}>
+        <Link href="/" aria-label="Hackboard home" onClick={() => setMobileOpen(false)}>
           <Logo />
         </Link>
 

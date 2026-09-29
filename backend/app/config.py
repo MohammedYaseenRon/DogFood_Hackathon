@@ -16,7 +16,7 @@ def demo_logins_enabled() -> bool:
 
 def seed_password() -> str:
     """Password given to seeded demo accounts that have none yet."""
-    return os.getenv("SEED_PASSWORD", "dogfood-demo")
+    return os.getenv("SEED_PASSWORD", "hackboard-demo")
 
 
 # Seeded session keys used by the acceptance checker (.dogfood.toml). Signing

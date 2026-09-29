@@ -236,10 +236,10 @@ export function EventForm({
         <Section step={1} title="Event details" description="How the event appears on the public listing.">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Event name" htmlFor="ev-name" className="sm:col-span-2">
-              <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} className={inputClass} placeholder="Dogfood 2026" />
+              <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} className={inputClass} placeholder="Spring Hack 2026" />
             </Field>
             <Field label="URL slug" htmlFor="ev-slug" hint={`Public page: /events/${slug || "auto-generated-from-name"}`}>
-              <input id="ev-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} maxLength={80} className={inputClass} placeholder="dogfood-2026" />
+              <input id="ev-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} maxLength={80} className={inputClass} placeholder="spring-hack-2026" />
             </Field>
             <Field label="Max team size" htmlFor="ev-size">
               <input id="ev-size" type="number" min={1} max={20} value={maxTeamSize} onChange={(e) => setMaxTeamSize(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} className={inputClass} />

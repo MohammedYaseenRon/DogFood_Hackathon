@@ -34,7 +34,7 @@ export function SiteFooter() {
       <div className="relative mx-auto max-w-7xl px-5 py-14 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
-            <Link href="/" aria-label="Dogfood home">
+            <Link href="/" aria-label="Hackboard home">
               <Logo dark />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
@@ -57,7 +57,7 @@ export function SiteFooter() {
           ))}
         </div>
         <div className="mt-14 flex flex-col gap-2 border-t border-white/10 pt-6 font-mono text-xs text-white/40 sm:flex-row sm:justify-between">
-          <p>dogfood · built for DOGFOOD 2026 · Hackathon Raptors</p>
+          <p>hackboard · built for DOGFOOD 2026 · Hackathon Raptors</p>
           <p>self-hosted · no cloud account required</p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-# Dogfood Portal — Frontend Design Spec
+# Hackboard — Frontend Design Spec
 
 ## Design system
 

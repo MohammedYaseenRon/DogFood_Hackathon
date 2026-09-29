@@ -164,7 +164,7 @@ def run(cfg: dict, event: str) -> list[Check]:
 
     # ---------------------------------------------------------------- T4 (import / export only)
     s, dump = p.json("GET", f"{org}/export.json", "organizer")
-    ok_dump = s == 200 and isinstance(dump, dict) and dump.get("format") == "dogfood-event/1"
+    ok_dump = s == 200 and isinstance(dump, dict) and dump.get("format") == "hackboard-event/1"
     check("T4", "whole-event export (JSON)", ok_dump and dump.get("projects") and dump.get("scores"),
           f"GET {org}/export.json as organizer", f"got {s}")
     s, _ = p.json("GET", f"{org}/export.json", "participant")

@@ -40,7 +40,7 @@ from app.services.voting import (
     voting_state,
 )
 
-log = logging.getLogger("dogfood.voting")
+log = logging.getLogger("hackboard.voting")
 router = APIRouter(tags=["voting"])
 
 CODE_TTL = timedelta(minutes=15)

@@ -55,7 +55,7 @@ export function EventImport() {
         eyebrow="Organizer / import"
         title="Import an event"
         mark="event"
-        description="Bring a whole event in from one JSON file: the official fixtures.json, or an export from any Dogfood portal. You see what it will create before anything is saved."
+        description="Bring a whole event in from one JSON file: the official fixtures.json, or an export from any Hackboard portal. You see what it will create before anything is saved."
         action={
           <ButtonLink href="/organizer/dashboard" variant="ghost" size="sm">
             Organizer dashboard

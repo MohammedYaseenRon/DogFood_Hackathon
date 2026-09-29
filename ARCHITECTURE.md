@@ -1,6 +1,6 @@
 # Architecture
 
-Dogfood Portal is a self-hosted hackathon platform. Organizers run events, participants form teams and submit
+Hackboard is a self-hosted hackathon platform, built for the DOGFOOD 2026 hackathon. Organizers run events, participants form teams and submit
 projects to a public gallery, judges score what they're assigned, and the public votes. It is one product for
 every role, and it runs on a laptop with one command.
 

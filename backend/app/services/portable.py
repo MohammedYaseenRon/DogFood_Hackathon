@@ -5,7 +5,7 @@ same thing here, so the official fixtures (or anything another tool can write
 in that shape) import as-is, and an export from here can seed a fresh install.
 
     {
-      "format": "dogfood-event/1",
+      "format": "hackboard-event/1",
       "event":       {id, name, slug, description, submissions_close, ...calendar},
       "tracks":      [{id, name, description}],
       "rubric":      [{name, weight, description}],             # optional
@@ -46,7 +46,7 @@ from app.models import (
 )
 from app.services.events import ensure_registration, iso
 
-FORMAT = "dogfood-event/1"
+FORMAT = "hackboard-event/1"
 CALENDAR = (
     "registration_opens", "registration_closes", "event_starts", "event_ends",
     "judging_starts", "judging_ends", "results_at",

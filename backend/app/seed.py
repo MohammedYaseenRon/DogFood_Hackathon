@@ -40,7 +40,7 @@ from app.config import TEST_SESSIONS, seed_password
 from app.services.events import ensure_registration
 from app.services.passwords import hash_password
 
-DEMO_EVENT_SLUG = "dogfood-open-hack"
+DEMO_EVENT_SLUG = "hackboard-open-hack"
 
 RUBRIC_DESCRIPTIONS = {
     "functionality": "Does it work? Can you run the demo and do the main thing it promises?",
@@ -146,7 +146,7 @@ def get_or_create_demo_event(db: Session, organizer_id: str) -> Event:
     event = Event(
         fixture_id="evt_demo",
         slug=DEMO_EVENT_SLUG,
-        name="Dogfood Open Hack",
+        name="Hackboard Open Hack",
         short_description="Open now — register, form a team and submit before the deadline.",
         description=(
             "A live demo event for trying the full participant flow: register, create "
@@ -241,7 +241,7 @@ def seed_community(db: Session, event: Event) -> None:
     if db.query(VotingConfig).filter(VotingConfig.event_id == event.id).first():
         return
     now = datetime.utcnow().replace(second=0, microsecond=0)
-    organizer = db.query(User).filter(User.email == "organizer@dogfood.local").first()
+    organizer = db.query(User).filter(User.email == "organizer@hackboard.local").first()
 
     def audit(action: str, at: datetime, *, actor_id: str | None, resource_type: str,
               resource_id: str | None, metadata: dict) -> None:
@@ -400,21 +400,21 @@ def seed() -> None:
 
         admin = get_or_create_user(
             db,
-            "admin@dogfood.local",
+            "admin@hackboard.local",
             role=Role.ADMIN,
             name="Platform Admin",
             fixture_id="adm_01",
         )
-        user_map["admin@dogfood.local"] = admin.id
+        user_map["admin@hackboard.local"] = admin.id
 
         organizer = get_or_create_user(
             db,
-            "organizer@dogfood.local",
+            "organizer@hackboard.local",
             role=Role.ORGANIZER,
             name="Event Organizer",
             fixture_id="org_01",
         )
-        user_map["organizer@dogfood.local"] = organizer.id
+        user_map["organizer@hackboard.local"] = organizer.id
 
         for judge in fixtures["judges"]:
             row = get_or_create_user(
@@ -591,7 +591,7 @@ def seed() -> None:
         print(f"  judge_b      Cookie: session={TEST_SESSIONS['judge_b']}")
         print(f"  participant  Cookie: session={TEST_SESSIONS['participant']}")
         print(f"  admin        Cookie: session={TEST_SESSIONS['admin']}")
-        print("email logins (password from SEED_PASSWORD, default 'dogfood-demo'):")
+        print("email logins (password from SEED_PASSWORD, default 'hackboard-demo'):")
         for account in demo_accounts:
             print(f"  {account.role.value.lower():<12} {account.email}")
     finally:

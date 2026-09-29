@@ -23,7 +23,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dogfood — Hackathon Portal",
+  title: "Hackboard — Hackathon Portal",
   description:
     "Self-hostable hackathon submission and judging platform. Register teams, submit projects, score submissions, and export results.",
 };

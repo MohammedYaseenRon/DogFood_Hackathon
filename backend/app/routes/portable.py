@@ -29,7 +29,7 @@ def export_json(slug: str, request: Request, db: Session = Depends(get_db)):
     return Response(
         body,
         media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="{event.slug}.dogfood.json"'},
+        headers={"Content-Disposition": f'attachment; filename="{event.slug}.hackboard.json"'},
     )
 
 

@@ -1094,7 +1094,7 @@ export function exportUrl(slug: string, kind: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Whole-event export / import (dogfood-event/1, a superset of fixtures.json)
+// Whole-event export / import (hackboard-event/1, a superset of fixtures.json)
 // ---------------------------------------------------------------------------
 
 export type ImportSummary = {

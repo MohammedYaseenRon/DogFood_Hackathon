@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Dogfood Portal API", lifespan=lifespan)
+app = FastAPI(title="Hackboard API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

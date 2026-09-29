@@ -32,7 +32,7 @@ def client_ip(request: Request) -> str:
 
 
 def _salt() -> str:
-    return os.getenv("FINGERPRINT_SALT", "dogfood-local-salt")
+    return os.getenv("FINGERPRINT_SALT", "hackboard-local-salt")
 
 
 def fingerprint(request: Request, scope: str) -> str:
