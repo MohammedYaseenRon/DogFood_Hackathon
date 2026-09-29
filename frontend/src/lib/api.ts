@@ -89,6 +89,20 @@ export type EventInfo = {
   rubric: Array<{ name: string; weight: number }>;
   questions: CustomQuestion[];
   counts?: EventCounts;
+  voting?: VotingSummary | null;
+};
+
+export type VotingState = "off" | "scheduled" | "open" | "closed";
+export type VotingAccess = "open" | "email" | "authenticated";
+export type VotingMode = "simple" | "quadratic";
+
+export type VotingSummary = {
+  state: VotingState;
+  mode: VotingMode;
+  access: VotingAccess;
+  opensAt: string | null;
+  closesAt: string | null;
+  resultsPublished: boolean;
 };
 
 export type ProjectStatus = "DRAFT" | "SUBMITTED";
@@ -881,7 +895,199 @@ export const EXPORT_KINDS = [
   { kind: "assignments", label: "Assignments", hint: "Who reviews what, by batch" },
   { kind: "scores", label: "Raw scores", hint: "One row per judge and project" },
   { kind: "results", label: "Results", hint: "Raw and normalized standings" },
+  { kind: "votes", label: "Community votes", hint: "Vote tally, organizers only" },
+  { kind: "ballots", label: "Ballots", hint: "Every ballot with abuse flags" },
+  { kind: "comments", label: "Comments", hint: "All comments, hidden ones included" },
+  { kind: "audit", label: "Audit trail", hint: "Everything that happened, in plain language" },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Community voting (T3)
+// ---------------------------------------------------------------------------
+
+export type VotingConfig = {
+  enabled: boolean;
+  access: VotingAccess;
+  mode: VotingMode;
+  credits: number;
+  opensAt: string | null;
+  closesAt: string | null;
+  state: VotingState;
+  resultsPublished: boolean;
+  linkToken?: string;
+};
+
+export type BallotProject = {
+  id: string;
+  title: string;
+  tagline: string | null;
+  track: string | null;
+  teamName: string;
+  thumbnailUrl: string | null;
+  own: boolean;
+};
+
+export type Ballot = {
+  event: EventRef;
+  config: VotingConfig;
+  needs: "signin" | "email" | "link" | null;
+  voter: { label: string; kind: string; voided: boolean } | null;
+  projects: BallotProject[];
+  allocations: Record<string, number>;
+  resultsAvailable: boolean;
+};
+
+export type VoteRow = {
+  rank: number | null;
+  headcountRank?: number | null;
+  projectId: string;
+  title: string;
+  teamName: string;
+  track: string | null;
+  score: number;
+  supporters: number;
+  credits?: number;
+  avgPosition?: number | null;
+};
+
+export type VotingTally = {
+  event: EventRef;
+  config: VotingConfig;
+  projects: VoteRow[];
+  ballots: { total: number; counted: number; voided: number; flagged: number; empty: number };
+  ballotSize: number;
+  kinds: Record<string, number>;
+};
+
+export type VoterRow = {
+  id: string;
+  label: string;
+  kind: string;
+  createdAt: string | null;
+  projects: number;
+  creditsSpent: number;
+  fingerprint: string;
+  flags: string[];
+  voided: boolean;
+  voidReason: string | null;
+};
+
+const voteBase = (slug: string) => `/api/vote/${encodeURIComponent(slug)}`;
+
+export function fetchBallotClient(slug: string, link?: string | null) {
+  return request<Ballot>(`${voteBase(slug)}${qs({ k: link })}`);
+}
+
+export function saveBallotClient(slug: string, allocations: Record<string, number>, link?: string | null) {
+  return request<{ ok: boolean; spent: number; credits: number }>(voteBase(slug), {
+    method: "PUT",
+    body: { allocations, k: link ?? undefined },
+  });
+}
+
+export function startEmailVoteClient(slug: string, email: string) {
+  return request<{ ok: boolean; expiresInMinutes: number; devCode?: string }>(`${voteBase(slug)}/email/start`, {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function verifyEmailVoteClient(slug: string, email: string, code: string) {
+  return request<{ ok: boolean }>(`${voteBase(slug)}/email/verify`, { method: "POST", body: { email, code } });
+}
+
+export function fetchPublicVoteResultsClient(slug: string) {
+  return request<{ projects: VoteRow[]; ballots: number; config: VotingConfig }>(`${voteBase(slug)}/results`);
+}
+
+const votingAdmin = (slug: string) => `/api/organizer/events/${encodeURIComponent(slug)}/voting`;
+
+export function fetchVotingAdminClient(slug: string) {
+  return request<{ event: EventRef; config: VotingConfig }>(votingAdmin(slug));
+}
+
+export function saveVotingConfigClient(
+  slug: string,
+  body: Pick<VotingConfig, "enabled" | "access" | "mode" | "credits" | "opensAt" | "closesAt" | "resultsPublished">,
+) {
+  return request<{ config: VotingConfig }>(votingAdmin(slug), { method: "PUT", body });
+}
+
+export function rotateVotingLinkClient(slug: string) {
+  return request<{ config: VotingConfig }>(`${votingAdmin(slug)}/rotate-link`, { method: "POST" });
+}
+
+export function fetchVotingTallyClient(slug: string) {
+  return request<VotingTally>(`${votingAdmin(slug)}/results`);
+}
+
+export function fetchVotersClient(slug: string) {
+  return request<{ voters: VoterRow[] }>(`${votingAdmin(slug)}/voters`);
+}
+
+export function voidVoterClient(slug: string, voterId: string, voided: boolean, reason?: string) {
+  return request<{ ok: boolean }>(`${votingAdmin(slug)}/voters/${voterId}/void`, {
+    method: "POST",
+    body: { voided, reason },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Comments and audit (T3)
+// ---------------------------------------------------------------------------
+
+export type CommentInfo = {
+  id: string;
+  author: string;
+  authorRole: UserRole;
+  fromTeam: boolean;
+  body: string;
+  createdAt: string;
+  hidden: boolean;
+  hiddenReason: string | null;
+  mine: boolean;
+  canDelete: boolean;
+  canModerate: boolean;
+};
+
+export function fetchCommentsClient(projectId: string) {
+  return request<{ comments: CommentInfo[]; canComment: boolean }>(
+    `/api/projects/${encodeURIComponent(projectId)}/comments`,
+  );
+}
+
+export function postCommentClient(projectId: string, body: string) {
+  return request<CommentInfo>(`/api/projects/${encodeURIComponent(projectId)}/comments`, {
+    method: "POST",
+    body: { body },
+  });
+}
+
+export function deleteCommentClient(commentId: string) {
+  return request<{ ok: boolean }>(`/api/comments/${commentId}`, { method: "DELETE" });
+}
+
+export function hideCommentClient(commentId: string, hidden: boolean, reason?: string) {
+  return request<{ ok: boolean }>(`/api/comments/${commentId}/hide`, { method: "POST", body: { hidden, reason } });
+}
+
+export type AuditRow = {
+  id: string;
+  at: string;
+  action: string;
+  label: string;
+  category: string;
+  actor: string;
+  actorRole: string | null;
+  summary: string;
+  resource: string;
+};
+
+export function fetchEventAuditClient(slug: string, category?: string) {
+  return request<{ entries: AuditRow[]; categories: string[] }>(
+    `/api/organizer/events/${encodeURIComponent(slug)}/audit${qs({ category })}`,
+  );
+}
 
 export function exportUrl(slug: string, kind: string) {
   return `/api/export.csv?event=${encodeURIComponent(slug)}&kind=${kind}`;

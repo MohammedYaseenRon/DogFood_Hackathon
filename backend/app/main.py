@@ -8,6 +8,8 @@ from app.models import Event
 from app.routes import (
     admin,
     auth_routes,
+    comments,
+    event_audit,
     events,
     export,
     invites,
@@ -19,6 +21,7 @@ from app.routes import (
     projects,
     teams,
     uploads,
+    voting,
 )
 from app.seed import seed
 
@@ -60,6 +63,9 @@ app.include_router(organizer.router)
 app.include_router(judging_admin.router)
 app.include_router(judge_invites.router)
 app.include_router(uploads.router)
+app.include_router(voting.router)
+app.include_router(comments.router)
+app.include_router(event_audit.router)
 app.include_router(admin.router)
 app.include_router(participant.router)
 

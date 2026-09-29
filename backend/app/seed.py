@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from datetime import datetime, timedelta
 import re
 from pathlib import Path
@@ -25,6 +26,13 @@ from app.models import (
     TeamMemberRole,
     Track,
     User,
+    Comment,
+    VoteAllocation,
+    Voter,
+    VotingAccess,
+    VotingConfig,
+    VotingMode,
+    new_id,
 )
 
 from app.config import TEST_SESSIONS, seed_password
@@ -215,6 +223,78 @@ def get_or_create_demo_event(db: Session, organizer_id: str) -> Event:
     )
     db.flush()
     return event
+
+
+COMMENTS = [
+    "Really clean demo. Does it work offline too?",
+    "Love the idea. How are you handling rate limits on the API side?",
+    "The onboarding flow is great; took me under a minute to get going.",
+    "Would be great to see an export option.",
+    "Nice use of the fixture data!",
+]
+
+
+def seed_community(db: Session, event: Event) -> None:
+    """Community voting on the fixture event: open now, quadratic, signed-in
+    voters. First seed only, so organizer changes and real ballots survive."""
+    if db.query(VotingConfig).filter(VotingConfig.event_id == event.id).first():
+        return
+    now = datetime.utcnow().replace(second=0, microsecond=0)
+    db.add(
+        VotingConfig(
+            event_id=event.id,
+            enabled=True,
+            access=VotingAccess.AUTHENTICATED,
+            mode=VotingMode.QUADRATIC,
+            credits=25,
+            opens_at=now - timedelta(days=1),
+            closes_at=now + timedelta(days=14),
+            link_token=new_id(),
+        )
+    )
+
+    rng = random.Random(2026)
+    projects = (
+        db.query(Project)
+        .join(Project.team)
+        .filter(Team.event_id == event.id, Project.status == ProjectStatus.SUBMITTED)
+        .order_by(Project.fixture_id)
+        .all()
+    )
+    members = (
+        db.query(TeamMember)
+        .join(Team, Team.id == TeamMember.team_id)
+        .filter(Team.event_id == event.id)
+        .order_by(TeamMember.user_id)
+        .all()
+    )
+    team_of = {m.user_id: m.team_id for m in members}
+    # A handful of projects are crowd favourites so the tally has a shape.
+    favourites = rng.sample(projects, k=min(5, len(projects)))
+    for user_id in list(team_of)[:45]:
+        eligible = [p for p in projects if p.team_id != team_of[user_id]]
+        voter = Voter(event_id=event.id, kind="user", user_id=user_id, fingerprint=new_id()[:32],
+                      created_at=now - timedelta(hours=rng.randint(1, 20)))
+        db.add(voter)
+        db.flush()
+        budget = 25
+        picks = rng.sample([p for p in favourites if p in eligible], k=min(2, len([p for p in favourites if p in eligible])))
+        picks += rng.sample([p for p in eligible if p not in picks], k=3)
+        for project in picks:
+            if budget <= 0:
+                break
+            credits = min(budget, rng.choice([1, 4, 4, 9, 9, 16]))
+            budget -= credits
+            db.add(VoteAllocation(voter_id=voter.id, project_id=project.id, credits=credits,
+                                  shown_position=rng.randint(1, len(projects))))
+
+    commenters = list(team_of)[45:60]
+    for index, user_id in enumerate(commenters):
+        project = projects[(index * 7) % len(projects)]
+        if project.team_id == team_of[user_id]:
+            continue
+        db.add(Comment(project_id=project.id, user_id=user_id, body=COMMENTS[index % len(COMMENTS)],
+                       created_at=now - timedelta(hours=index + 1)))
 
 
 def ensure_demo_password(user: User) -> None:
@@ -457,6 +537,7 @@ def seed() -> None:
             raise RuntimeError("Failed to resolve seeded test users")
 
         get_or_create_demo_event(db, organizer.id)
+        seed_community(db, event)
 
         demo_accounts = [admin, organizer, db.get(User, judge_a), db.get(User, judge_b), db.get(User, first_participant_id)]
         for account in demo_accounts:

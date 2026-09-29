@@ -103,6 +103,9 @@ class Event(Base):
         back_populates="event", order_by="RubricCriterion.display_order"
     )
     judges: Mapped[list["EventJudge"]] = relationship(back_populates="event")
+    voting_config: Mapped["VotingConfig | None"] = relationship(
+        primaryjoin="Event.id == foreign(VotingConfig.event_id)", uselist=False, viewonly=True
+    )
     prizes: Mapped[list["Prize"]] = relationship(back_populates="event")
     registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="event")
     custom_questions: Mapped[list["CustomQuestion"]] = relationship(
@@ -263,6 +266,9 @@ class AuditLog(Base):
     resource_type: Mapped[str] = mapped_column(String)
     resource_id: Mapped[str | None] = mapped_column(String, nullable=True)
     metadata_json: Mapped[str] = mapped_column(String, default="{}")
+    # Set on everything that happens inside one event, so an organizer can read
+    # that event's trail without seeing the rest of the platform.
+    event_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -396,3 +402,129 @@ class Score(Base):
 
     judge: Mapped[User] = relationship(back_populates="scores")
     project: Mapped[Project] = relationship(back_populates="scores")
+
+
+# --------------------------------------------------------------------------
+# T3: community voting, comments, anti-abuse
+# --------------------------------------------------------------------------
+
+
+class VotingAccess(str, enum.Enum):
+    OPEN = "open"  # anyone holding the voting link
+    EMAIL = "email"  # anyone who proves an email address with a one-time code
+    AUTHENTICATED = "authenticated"  # signed-in accounts only
+
+
+class VotingMode(str, enum.Enum):
+    SIMPLE = "simple"  # up to `credits` projects, one vote each
+    QUADRATIC = "quadratic"  # `credits` to spread; n credits on a project = √n influence
+
+
+class VotingConfig(Base):
+    __tablename__ = "voting_configs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    access: Mapped[VotingAccess] = mapped_column(Enum(VotingAccess), default=VotingAccess.AUTHENTICATED)
+    mode: Mapped[VotingMode] = mapped_column(Enum(VotingMode), default=VotingMode.QUADRATIC)
+    credits: Mapped[int] = mapped_column(default=25)
+    opens_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    closes_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Secret part of the voting URL; required in open-link mode, rotatable.
+    link_token: Mapped[str] = mapped_column(String, default=new_id)
+    results_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    event: Mapped[Event] = relationship()
+
+
+class Voter(Base):
+    """One ballot-holder in one event: an account, a verified email, or an
+    anonymous browser holding the open voting link."""
+
+    __tablename__ = "voters"
+    __table_args__ = (
+        UniqueConstraint("event_id", "user_id"),
+        UniqueConstraint("event_id", "email"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String)  # user | email | anon
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    # Canonical form (lowercase, no +tag, no gmail dots) so aliases collapse into one voter.
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    email_display: Mapped[str | None] = mapped_column(String, nullable=True)
+    # sha256 of the voter cookie; the raw value only ever lives in the browser.
+    session_hash: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
+    # Salted hash of IP + user agent: never reversible, only comparable within an event.
+    fingerprint: Mapped[str] = mapped_column(String, index=True)
+    ballot_seed: Mapped[str] = mapped_column(String, default=new_id)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    voided: Mapped[bool] = mapped_column(Boolean, default=False)
+    void_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    voided_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped["User | None"] = relationship(foreign_keys=[user_id])
+    allocations: Mapped[list["VoteAllocation"]] = relationship(
+        back_populates="voter", cascade="all, delete-orphan"
+    )
+
+
+class VoteAllocation(Base):
+    __tablename__ = "vote_allocations"
+    __table_args__ = (UniqueConstraint("voter_id", "project_id"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    voter_id: Mapped[str] = mapped_column(ForeignKey("voters.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    credits: Mapped[int] = mapped_column(default=0)
+    # Where the project sat on this voter's shuffled ballot, kept to audit position bias.
+    shown_position: Mapped[int | None] = mapped_column(nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    voter: Mapped[Voter] = relationship(back_populates="allocations")
+    project: Mapped[Project] = relationship()
+
+
+class EmailCode(Base):
+    __tablename__ = "email_codes"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    email: Mapped[str] = mapped_column(String, index=True)
+    email_display: Mapped[str] = mapped_column(String)
+    code_hash: Mapped[str] = mapped_column(String)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(default=0)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class RateEvent(Base):
+    """Sliding-window rate limiting without extra infrastructure."""
+
+    __tablename__ = "rate_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    key: Mapped[str] = mapped_column(String, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    body: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    hidden_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    hidden_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
+    project: Mapped[Project] = relationship()

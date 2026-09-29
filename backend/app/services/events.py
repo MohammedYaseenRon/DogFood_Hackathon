@@ -22,7 +22,7 @@ from app.models import (
     User,
     new_id,
 )
-from app.services.event_state import can_submit, event_state_payload
+from app.services.event_state import can_submit, event_state_payload, voting_state
 
 QUESTION_TYPES = {"text", "textarea", "url", "select"}
 DEFAULT_RUBRIC = ("functionality", "quality", "innovation")
@@ -181,6 +181,22 @@ def serialize_event(event: Event) -> dict:
             for criterion in sorted(event.rubric, key=lambda c: (c.display_order, c.name))
         ],
         "questions": [serialize_question(q) for q in event.custom_questions],
+        "voting": _voting_summary(event),
+    }
+
+
+def _voting_summary(event: Event) -> dict | None:
+    config = event.voting_config
+    state = voting_state(config)
+    if state == "off":
+        return None
+    return {
+        "state": state,
+        "mode": config.mode.value,
+        "access": config.access.value,
+        "opensAt": iso(config.opens_at),
+        "closesAt": iso(config.closes_at),
+        "resultsPublished": config.results_published and state == "closed",
     }
 
 

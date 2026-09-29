@@ -7,6 +7,10 @@
     assignments    who was handed what, in which batch, scored or not
     scores         raw scores, one row per (judge, project)   <- default
     results        raw and normalized standings
+    votes          community vote tally (organizers only, even mid-vote)
+    ballots        one row per ballot: voter, flags, void status
+    comments       every comment on the event's projects, hidden ones included
+    audit          the event's audit trail in plain language
 
 Every cell that starts with a formula character is prefixed with a quote, so a
 project title like `=HYPERLINK(...)` can't execute when an organizer opens the
@@ -24,6 +28,7 @@ from app.auth import require_role
 from app.database import get_db
 from app.lib.scoring import weighted_total
 from app.models import (
+    Comment,
     EventRegistration,
     JudgeAssignment,
     Project,
@@ -34,11 +39,16 @@ from app.models import (
     TeamMember,
 )
 from app.services.events import iso, resolve_event
+from app.routes.event_audit import audit_entries
 from app.services.judging import event_progress, event_results, event_rubric
+from app.services.voting import get_config, load_voters, serialize_voter, tally, voter_flags
 
 router = APIRouter()
 
-KINDS = ("registrations", "teams", "submissions", "judges", "assignments", "scores", "results")
+KINDS = (
+    "registrations", "teams", "submissions", "judges", "assignments", "scores", "results",
+    "votes", "ballots", "comments", "audit",
+)
 FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -230,7 +240,65 @@ def _results_csv(db: Session, event) -> str:
     )
 
 
+def _votes_csv(db: Session, event) -> str:
+    config = get_config(db, event, create=True)
+    data = tally(db, event, config)
+    return _csv(
+        ["rank", "headcount_rank", "project_id", "title", "team", "track", "score", "supporters", "credits", "avg_ballot_position"],
+        (
+            [r["rank"], r["headcountRank"], r["projectId"], r["title"], r["teamName"], r["track"],
+             r["score"], r["supporters"], r["credits"], r["avgPosition"]]
+            for r in data["projects"]
+        ),
+    )
+
+
+def _ballots_csv(db: Session, event) -> str:
+    voters = load_voters(db, event)
+    flags = voter_flags(db, event, voters)
+    return _csv(
+        ["voter_id", "voter", "kind", "created_at", "projects", "spent", "device", "flags", "voided", "void_reason"],
+        (
+            [r["id"], r["label"], r["kind"], r["createdAt"], r["projects"], r["creditsSpent"], r["fingerprint"],
+             "; ".join(r["flags"]), "yes" if r["voided"] else "no", r["voidReason"]]
+            for r in (serialize_voter(v, flags.get(v.id, [])) for v in voters)
+        ),
+    )
+
+
+def _comments_csv(db: Session, event) -> str:
+    rows = (
+        db.query(Comment)
+        .options(joinedload(Comment.user), joinedload(Comment.project))
+        .join(Comment.project)
+        .join(Project.team)
+        .filter(Team.event_id == event.id)
+        .order_by(Comment.created_at.asc())
+        .all()
+    )
+    return _csv(
+        ["comment_id", "project_id", "project", "author", "author_email", "created_at", "status", "hidden_reason", "body"],
+        (
+            [c.id, c.project.fixture_id, c.project.title, c.user.name or "", c.user.email, iso(c.created_at),
+             "deleted" if c.deleted else "hidden" if c.hidden else "visible", c.hidden_reason or "", c.body]
+            for c in rows
+        ),
+    )
+
+
+def _audit_csv(db: Session, event) -> str:
+    rows = audit_entries(db, event, limit=2000)
+    return _csv(
+        ["at", "category", "what", "who", "details", "action", "resource"],
+        ([r["at"], r["category"], r["label"], r["actor"], r["summary"], r["action"], r["resource"]] for r in rows),
+    )
+
+
 BUILDERS = {
+    "votes": _votes_csv,
+    "ballots": _ballots_csv,
+    "comments": _comments_csv,
+    "audit": _audit_csv,
     "registrations": _registrations_csv,
     "teams": _teams_csv,
     "submissions": _submissions_csv,

@@ -56,6 +56,9 @@ T1 + T2 verified. See `acceptance-report.txt` and `.dogfood.toml` for routes and
 
 - Judging (panel, invites, assignment, rubric, isolation, progress, exports): [JUDGING.md](JUDGING.md)
 - Cross-judge normalization, defended and run on the fixtures: [NORMALIZATION.md](NORMALIZATION.md)
+- T3 community voting (open link / email / signed-in, quadratic), comments, hidden results, shuffled ballots,
+  rate limits, duplicate detection and a readable audit trail: [VOTING.md](VOTING.md). The acceptance checker has
+  no T3 checks; T3 is covered by `backend/tests/test_t3_community.py`.
   (`cd backend && python -m app.normalization_report`)
 
 ## Dev startup (Windows)
@@ -146,6 +149,9 @@ pytest
 | `/organizer/events/:slug/edit` | Edit an event |
 | `/organizer/events/:slug/judging` | Judging console: live progress, judge panel and invites, batch / automatic assignment, rubric, normalized results, CSV exports |
 | `/judge-invite/:token` | Judge invite acceptance |
+| `/vote/:slug` | Community ballot (shuffled per voter; results only after close + publish) |
+| `/organizer/events/:slug/voting` | Voting settings, share link, live tally, ballot review |
+| `/organizer/events/:slug/audit` | The event's audit trail in plain language, with search and CSV |
 | `/judging` | Judge scoring workspace (only assigned projects inside the judge's tracks) |
 | `/admin` | Users (roles, suspend), platform stats, audit log |
 

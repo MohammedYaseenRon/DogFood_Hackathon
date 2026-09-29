@@ -64,6 +64,12 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
             <ButtonLink href={`/organizer/events/${event.slug}/judging`} size="sm" variant="signal">
               Judging
             </ButtonLink>
+            <ButtonLink href={`/organizer/events/${event.slug}/voting`} size="sm" variant="secondary">
+              Voting
+            </ButtonLink>
+            <ButtonLink href={`/organizer/events/${event.slug}/audit`} size="sm" variant="secondary">
+              Audit trail
+            </ButtonLink>
             <ButtonLink href={`/organizer/events/${event.slug}/edit`} size="sm">
               Edit event
             </ButtonLink>

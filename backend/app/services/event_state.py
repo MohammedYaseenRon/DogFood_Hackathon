@@ -139,3 +139,15 @@ def event_state_payload(event: Event) -> dict:
         "submissionsClose": _iso(event.submissions_close),
         "serverTime": _iso(_now()),
     }
+
+
+def voting_state(config, now: datetime | None = None) -> str:
+    """Community voting window: off | scheduled | open | closed."""
+    current = now or _now()
+    if not config or not config.enabled:
+        return "off"
+    if config.opens_at and current < config.opens_at:
+        return "scheduled"
+    if config.closes_at and current >= config.closes_at:
+        return "closed"
+    return "open"

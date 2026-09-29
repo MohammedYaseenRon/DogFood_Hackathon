@@ -123,3 +123,10 @@ def run_migrations(engine: Engine) -> None:
             for col in ("created_at", "updated_at"):
                 if col not in cols:
                     _add_column(conn, "scores", col, "DATETIME")
+
+    if "audit_logs" in tables:
+        cols = _column_names(inspector, "audit_logs")
+        with engine.begin() as conn:
+            if "event_id" not in cols:
+                _add_column(conn, "audit_logs", "event_id", "VARCHAR")
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_event_id ON audit_logs (event_id)"))

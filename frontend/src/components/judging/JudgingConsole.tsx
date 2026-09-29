@@ -86,8 +86,11 @@ export function JudgingConsole({ slug }: { slug: string }) {
             <ButtonLink href={`/organizer/events/${slug}`} variant="secondary" size="sm">
               Event overview
             </ButtonLink>
-            <ButtonLink href={`/organizer/events/${slug}/edit`} variant="ghost" size="sm">
-              Edit dates
+            <ButtonLink href={`/organizer/events/${slug}/voting`} variant="secondary" size="sm">
+              Community voting
+            </ButtonLink>
+            <ButtonLink href={`/organizer/events/${slug}/audit`} variant="ghost" size="sm">
+              Audit trail
             </ButtonLink>
           </>
         }

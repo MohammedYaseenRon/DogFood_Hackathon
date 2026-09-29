@@ -1,3 +1,4 @@
+import { ProjectComments } from "@/components/ProjectComments";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert } from "@/components/ui/Alert";
@@ -126,6 +127,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                 ))}
               </dl>
             </Card>
+          ) : null}
+
+          {!isDraft ? (
+            <div className="pt-4">
+              <ProjectComments projectId={project.id} />
+            </div>
           ) : null}
         </div>
 

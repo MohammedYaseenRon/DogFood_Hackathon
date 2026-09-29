@@ -70,6 +70,11 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                     <ButtonLink href={`/organizer/events/${event.slug}/judging`} variant="outline" size="lg">
                       Judging console
                     </ButtonLink>
+                    {event.voting ? (
+                      <ButtonLink href={`/organizer/events/${event.slug}/voting`} variant="outline" size="lg">
+                        Community voting
+                      </ButtonLink>
+                    ) : null}
                   </>
                 ) : isJudge ? (
                   <ButtonLink href="/judging" variant="signal" size="lg">
@@ -83,6 +88,16 @@ export default async function EventSlugPage({ params }: EventSlugPageProps) {
                     {event.state.registrationOpen ? "Register to participate" : "Your participation"}
                   </a>
                 )}
+                {!isStaff && event.voting?.state === "open" ? (
+                  <ButtonLink href={`/vote/${event.slug}`} variant="white" size="lg">
+                    Vote for projects
+                  </ButtonLink>
+                ) : null}
+                {event.voting?.resultsPublished ? (
+                  <ButtonLink href={`/vote/${event.slug}`} variant="white" size="lg">
+                    People&apos;s choice results
+                  </ButtonLink>
+                ) : null}
                 <ButtonLink href={`/projects?event=${event.slug}`} variant="outline" size="lg">
                   Browse projects
                 </ButtonLink>

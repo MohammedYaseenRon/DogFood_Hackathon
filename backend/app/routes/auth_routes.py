@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -18,6 +18,7 @@ from app.database import get_db
 from app.models import Role, Session as DbSession, User, new_id
 from app.services.audit import log_action
 from app.services.passwords import hash_password, verify_password
+from app.services.ratelimit import hit, ip_key
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -95,7 +96,11 @@ def change_password(body: PasswordBody, request: Request, db: Session = Depends(
 
 
 @router.post("/register")
-def register(body: RegisterBody, response: Response, db: Session = Depends(get_db)):
+def register(body: RegisterBody, request: Request, response: Response, db: Session = Depends(get_db)):
+    # Cheap accounts are the raw material of Sybil voting: cap sign-ups per network.
+    hit(db, f"auth:register:{ip_key(request)}", limit=10, window=timedelta(hours=1),
+        message="Too many accounts created from this network. Try again later.")
+    db.commit()
     email = body.email.strip().lower()
     existing = db.query(User).filter(User.email == email).first()
     if existing:
@@ -123,10 +128,14 @@ def register(body: RegisterBody, response: Response, db: Session = Depends(get_d
 
 
 @router.post("/login")
-def login(body: LoginBody, response: Response, db: Session = Depends(get_db)):
+def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_db)):
     email = body.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
+        # Only failures count, so a user who knows their password is never locked out.
+        hit(db, f"auth:login-fail:{ip_key(request)}:{email}", limit=10, window=timedelta(minutes=15),
+            message="Too many failed sign-ins. Wait 15 minutes and try again.")
+        db.commit()
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.suspended:
         raise HTTPException(status_code=403, detail="Account suspended")
