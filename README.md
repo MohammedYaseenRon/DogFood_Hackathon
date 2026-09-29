@@ -50,15 +50,23 @@ With the stack running:
 python dog_food/run.py .dogfood.toml > acceptance-report.txt
 ```
 
+`run.py` only checks T1 and T2. Our own checker covers the rest in the same style (standard library only, uses the
+`.dogfood.toml` headers, changes no event data): T3, the T4 import/export we built, and the Normalization Proof
+bonus.
+
+```bash
+python scripts/acceptance_extra.py .dogfood.toml
+```
+
 ## What's done, honestly
 
 | Tier | Status | Proof |
 |---|---|---|
 | T1 core portal | Done | `acceptance-report.txt` (checker), `tests/test_t1_core.py` |
 | T2 judging engine | Done | `acceptance-report.txt` (checker), `tests/test_t2_judging.py`, [JUDGING.md](JUDGING.md) |
-| T3 community | Done, claimed | `run.py` has no T3 checks, so the report prints "claimed but not verified: T3". Proof is `tests/test_t3_community.py` (25 tests) and [VOTING.md](VOTING.md). |
-| T4 stretch | Partly done | Only bulk import/export (below). No API keys, webhooks, certificates, signed judge records or embed widget. |
-| Bonus: Normalization Proof | Done | [NORMALIZATION.md](NORMALIZATION.md), `cd backend && python -m app.normalization_report` |
+| T3 community | Done, claimed | `scripts/acceptance_extra.py` (23/23 checks), `tests/test_t3_community.py` (25 tests), [VOTING.md](VOTING.md). `run.py` has no T3 checks, so its report prints "claimed but not verified: T3". |
+| T4 stretch | One of five items: bulk import/export. Not claimed. | `scripts/acceptance_extra.py` (5/5 checks), `tests/test_portability.py`. Not built: API keys and webhooks, certificates, signed judge records, embed widget. |
+| Bonus: Normalization Proof | Done | `scripts/acceptance_extra.py` (5/5 checks), [NORMALIZATION.md](NORMALIZATION.md), `cd backend && python -m app.normalization_report` |
 
 `.dogfood.toml` claims **T1, T2 and T3**. The acceptance checker verifies T1 and T2; it has no T3 checks, so T3 is backed by our own tests instead. T4 is not claimed.
 

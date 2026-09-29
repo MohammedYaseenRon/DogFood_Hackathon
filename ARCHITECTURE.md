@@ -93,5 +93,6 @@ These services hold the decisions a reviewer is most likely to ask about:
   (`EMAIL_DEV_PREVIEW=1`). Production would plug a mail provider into `services/voting.py`.
 - **Not built (T4):** API keys and webhooks, certificates, signed judge records, an embeddable widget. The REST API
   works for scripts with a session cookie, but there are no scoped tokens.
-- **The acceptance checker only covers T1 and T2.** T3 and the import/export path are verified by our own tests
+- **The acceptance checker only covers T1 and T2.** T3, the import/export path and the normalization bonus are
+  verified by our own checker (`scripts/acceptance_extra.py`) and tests
   (`test_t3_community.py`, `test_portability.py`), and `.dogfood.toml` claims T1, T2 and T3 with a comment saying so.
