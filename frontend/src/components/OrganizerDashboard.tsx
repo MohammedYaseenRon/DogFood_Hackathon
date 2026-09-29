@@ -279,6 +279,9 @@ export function OrganizerDashboard() {
               <ButtonLink href={`/organizer/events/${eventSlug}`} variant="secondary" size="sm">
                 Manage event
               </ButtonLink>
+              <ButtonLink href="/organizer/import" variant="secondary" size="sm">
+                Import event
+              </ButtonLink>
               <ButtonLink href="/organizer/event/new" variant="signal" size="sm">
                 + New event
               </ButtonLink>

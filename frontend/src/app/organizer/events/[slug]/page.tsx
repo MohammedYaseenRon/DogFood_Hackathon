@@ -70,6 +70,13 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
             <ButtonLink href={`/organizer/events/${event.slug}/audit`} size="sm" variant="secondary">
               Audit trail
             </ButtonLink>
+            <a
+              href={`/api/organizer/events/${encodeURIComponent(event.slug)}/export.json`}
+              download
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-line bg-white px-3.5 text-sm font-semibold text-ink transition hover:border-zinc-400 hover:bg-zinc-50"
+            >
+              Export event (JSON)
+            </a>
             <ButtonLink href={`/organizer/events/${event.slug}/edit`} size="sm">
               Edit event
             </ButtonLink>

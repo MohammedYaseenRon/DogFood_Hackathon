@@ -2,8 +2,10 @@
 base_url = "http://localhost:8080"
 
 [tiers]
-claimed = ["T1", "T2"]
-pitch = "Split Next.js frontend and FastAPI backend hackathon portal with backend-enforced judge isolation."
+claimed = ["T1", "T2", "T3"]
+# run.py has no T3 checks, so the report lists T3 as "claimed but not verified".
+# T3 proof: backend/tests/test_t3_community.py (25 tests) and VOTING.md.
+pitch = "Self-hosted hackathon portal (Next.js + FastAPI + SQLite): backend-enforced judge isolation, documented cross-judge normalization, quadratic community voting with anti-abuse, and lossless event import/export."
 
 [auth]
 organizer   = "Cookie: session=org_7f2a"

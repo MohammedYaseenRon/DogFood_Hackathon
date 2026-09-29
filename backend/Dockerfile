@@ -10,6 +10,7 @@ COPY app ./app
 ENV DATABASE_URL=sqlite:////data/dev.db
 ENV FIXTURES_PATH=/app/dog_food/fixtures.json
 ENV PORT=4000
+ENV UPLOAD_DIR=/data/uploads
 
 EXPOSE 4000
 

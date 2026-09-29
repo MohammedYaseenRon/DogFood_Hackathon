@@ -7,7 +7,6 @@ dist/
 *.db-journal
 .DS_Store
 npm-debug.log*
-acceptance-report.txt
 __pycache__/
 *.py[cod]
 .venv/

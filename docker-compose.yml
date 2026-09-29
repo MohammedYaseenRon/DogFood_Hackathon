@@ -54,6 +54,10 @@ services:
 
       dockerfile: Dockerfile
 
+      args:
+
+        BACKEND_URL: http://backend:4000
+
     ports:
 
       - "8080:8080"

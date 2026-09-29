@@ -1094,6 +1094,48 @@ export function exportUrl(slug: string, kind: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Whole-event export / import (dogfood-event/1, a superset of fixtures.json)
+// ---------------------------------------------------------------------------
+
+export type ImportSummary = {
+  event: string | null;
+  tracks: number;
+  rubric: number;
+  judges: number;
+  teams: number;
+  projects: number;
+  assignments: number;
+  scores: number;
+};
+
+export type ImportResult =
+  | { ok: true; summary: ImportSummary; event?: { slug: string; name: string } }
+  | { ok: false; problems: string[] };
+
+export function eventJsonExportUrl(slug: string) {
+  return `/api/organizer/events/${encodeURIComponent(slug)}/export.json`;
+}
+
+/** Sends the file untouched; `dryRun` checks it and reports what it would create. */
+export async function importEventClient(fileText: string, dryRun: boolean): Promise<ImportResult> {
+  try {
+    const res = await fetch(`/api/organizer/import${dryRun ? "?dry_run=true" : ""}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: fileText,
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok) return { ok: true, summary: data.summary, event: data.event };
+    const detail = data?.detail;
+    if (detail && Array.isArray(detail.problems)) return { ok: false, problems: detail.problems };
+    return { ok: false, problems: [typeof detail === "string" ? detail : `Import failed (${res.status}).`] };
+  } catch {
+    return { ok: false, problems: ["Network error — is the server running?"] };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Admin
 // ---------------------------------------------------------------------------
 

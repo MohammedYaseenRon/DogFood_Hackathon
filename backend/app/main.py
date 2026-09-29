@@ -18,6 +18,7 @@ from app.routes import (
     judging_admin,
     organizer,
     participant,
+    portable,
     projects,
     teams,
     uploads,
@@ -68,6 +69,7 @@ app.include_router(comments.router)
 app.include_router(event_audit.router)
 app.include_router(admin.router)
 app.include_router(participant.router)
+app.include_router(portable.router)
 
 
 @app.get("/health")

@@ -50,16 +50,45 @@ With the stack running:
 python dog_food/run.py .dogfood.toml > acceptance-report.txt
 ```
 
-## Target tiers
+## What's done, honestly
 
-T1 + T2 verified. See `acceptance-report.txt` and `.dogfood.toml` for routes and test session cookies.
+| Tier | Status | Proof |
+|---|---|---|
+| T1 core portal | Done | `acceptance-report.txt` (checker), `tests/test_t1_core.py` |
+| T2 judging engine | Done | `acceptance-report.txt` (checker), `tests/test_t2_judging.py`, [JUDGING.md](JUDGING.md) |
+| T3 community | Done, claimed | `run.py` has no T3 checks, so the report prints "claimed but not verified: T3". Proof is `tests/test_t3_community.py` (25 tests) and [VOTING.md](VOTING.md). |
+| T4 stretch | Partly done | Only bulk import/export (below). No API keys, webhooks, certificates, signed judge records or embed widget. |
+| Bonus: Normalization Proof | Done | [NORMALIZATION.md](NORMALIZATION.md), `cd backend && python -m app.normalization_report` |
 
-- Judging (panel, invites, assignment, rubric, isolation, progress, exports): [JUDGING.md](JUDGING.md)
-- Cross-judge normalization, defended and run on the fixtures: [NORMALIZATION.md](NORMALIZATION.md)
-- T3 community voting (open link / email / signed-in, quadratic), comments, hidden results, shuffled ballots,
-  rate limits, duplicate detection and a readable audit trail: [VOTING.md](VOTING.md). The acceptance checker has
-  no T3 checks; T3 is covered by `backend/tests/test_t3_community.py`.
-  (`cd backend && python -m app.normalization_report`)
+`.dogfood.toml` claims **T1, T2 and T3**. The acceptance checker verifies T1 and T2; it has no T3 checks, so T3 is backed by our own tests instead. T4 is not claimed.
+
+Documents:
+- [ARCHITECTURE.md](ARCHITECTURE.md): system design, decisions and limitations
+- [DATA-MODEL.md](DATA-MODEL.md): schema, and every import and export path
+- [JUDGING.md](JUDGING.md): panel, invites, assignment, rubric, isolation, progress and exports
+- [NORMALIZATION.md](NORMALIZATION.md): cross-judge normalization, defended and run on the fixtures
+- [VOTING.md](VOTING.md): community voting, quadratic voting, hidden results, shuffled ballots, rate limits,
+  duplicate detection and the audit trail
+
+## Moving in and out
+
+A whole event moves as one JSON file in the `fixtures.json` shape, so the official fixtures import as-is:
+
+- **Import:** organizer dashboard, **Import event**. It shows a dry-run preview with every problem before saving.
+  Or run `python -m app.transfer import event.json --dry-run`.
+- **Export:** organizer event page, **Export event (JSON)**. Or run
+  `python -m app.transfer export sample-hack-2026 event.json`.
+- **CSV:** 11 kinds of CSV, from registrations to the audit trail.
+
+Round trips are lossless and tested. Details: [DATA-MODEL.md](DATA-MODEL.md#import-and-export-paths).
+
+## Known limitations
+
+- **Roles are platform-wide.** Any organizer can manage any event. Judges are scoped per event and per track.
+- **No outgoing email.** The email-gated voting code is shown on screen and in the server log
+  (`EMAIL_DEV_PREVIEW=1`).
+- **SQLite allows one writer at a time.** That is fine at hackathon scale. Set `DATABASE_URL` for Postgres.
+- **The API needs a session cookie.** There are no API keys or webhooks yet.
 
 ## Dev startup (Windows)
 
@@ -144,6 +173,7 @@ pytest
 | `/participant` | Participant hub: every event you're in, with team and project status |
 | `/account` | Profile and password |
 | `/organizer/dashboard` | All events + judging progress per event |
+| `/organizer/import` | Import a whole event from JSON (fixtures.json shape), with a dry-run preview |
 | `/organizer/event/new` | Create an event (dates, tracks, prizes, custom submission questions) |
 | `/organizer/events/:slug` | Event overview: teams, drafts and submissions |
 | `/organizer/events/:slug/edit` | Edit an event |

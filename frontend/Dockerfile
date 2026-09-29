@@ -7,6 +7,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Next bakes rewrite destinations into the build, so the backend address
+# has to be known here, not only at runtime.
+ARG BACKEND_URL=http://backend:4000
+ENV BACKEND_URL=$BACKEND_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
