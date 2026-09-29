@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ExportsPanel } from "@/components/judging/ResultsTab";
 import { PageSection, PageShell } from "@/components/ui/PageShell";
 import { formatDateTime, phaseInfo } from "@/lib/format";
 import { fetchEventBySlug, fetchEventSubmissions } from "@/lib/server-api";
@@ -60,6 +61,9 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
         }
         action={
           <>
+            <ButtonLink href={`/organizer/events/${event.slug}/judging`} size="sm" variant="signal">
+              Judging
+            </ButtonLink>
             <ButtonLink href={`/organizer/events/${event.slug}/edit`} size="sm">
               Edit event
             </ButtonLink>
@@ -188,13 +192,11 @@ export default async function OrganizerEventPage({ params, searchParams }: Props
                     </div>
                   ))}
                 </dl>
-                <a
-                  href={`/api/export.csv?event=${event.slug}`}
-                  className="mt-5 inline-flex h-9 items-center rounded-lg bg-ink px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-                >
-                  Download scores CSV ↓
-                </a>
+                <ButtonLink href={`/organizer/events/${event.slug}/judging`} size="sm" className="mt-5">
+                  Open judging console →
+                </ButtonLink>
               </Card>
+              <ExportsPanel slug={event.slug} />
             </aside>
           </div>
         </div>

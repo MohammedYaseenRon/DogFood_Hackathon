@@ -55,7 +55,9 @@ class User(Base):
     sessions: Mapped[list["Session"]] = relationship(back_populates="user")
     team_memberships: Mapped[list["TeamMember"]] = relationship(back_populates="user")
     scores: Mapped[list["Score"]] = relationship(back_populates="judge")
-    judge_assignments: Mapped[list["JudgeAssignment"]] = relationship(back_populates="judge")
+    judge_assignments: Mapped[list["JudgeAssignment"]] = relationship(
+        back_populates="judge", foreign_keys="JudgeAssignment.judge_id"
+    )
     registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="user")
 
 
@@ -97,7 +99,10 @@ class Event(Base):
         back_populates="event", order_by="Track.display_order"
     )
     teams: Mapped[list["Team"]] = relationship(back_populates="event")
-    rubric: Mapped[list["RubricCriterion"]] = relationship(back_populates="event")
+    rubric: Mapped[list["RubricCriterion"]] = relationship(
+        back_populates="event", order_by="RubricCriterion.display_order"
+    )
+    judges: Mapped[list["EventJudge"]] = relationship(back_populates="event")
     prizes: Mapped[list["Prize"]] = relationship(back_populates="event")
     registrations: Mapped[list["EventRegistration"]] = relationship(back_populates="event")
     custom_questions: Mapped[list["CustomQuestion"]] = relationship(
@@ -278,15 +283,82 @@ class Prize(Base):
 
 
 class RubricCriterion(Base):
+    """One scored dimension. Judges give every criterion a whole number 1-5; the
+    weight only matters when scores are aggregated, so it can change mid-judging."""
+
     __tablename__ = "rubric_criteria"
     __table_args__ = (UniqueConstraint("event_id", "name"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
     weight: Mapped[float] = mapped_column(Float, default=1.0)
+    display_order: Mapped[int] = mapped_column(default=0)
     event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
 
     event: Mapped[Event] = relationship(back_populates="rubric")
+
+
+class EventJudge(Base):
+    """A judge's seat on one event's panel. With no tracks the judge covers the
+    whole event; with tracks they are a track judge and see nothing outside them."""
+
+    __tablename__ = "event_judges"
+    __table_args__ = (UniqueConstraint("event_id", "user_id"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    invited_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    event: Mapped[Event] = relationship(back_populates="judges")
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
+    tracks: Mapped[list["EventJudgeTrack"]] = relationship(
+        back_populates="event_judge", cascade="all, delete-orphan"
+    )
+
+    @property
+    def track_ids(self) -> set[str]:
+        return {row.track_id for row in self.tracks}
+
+
+class EventJudgeTrack(Base):
+    __tablename__ = "event_judge_tracks"
+    __table_args__ = (UniqueConstraint("event_judge_id", "track_id"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_judge_id: Mapped[str] = mapped_column(ForeignKey("event_judges.id", ondelete="CASCADE"))
+    track_id: Mapped[str] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"))
+
+    event_judge: Mapped[EventJudge] = relationship(back_populates="tracks")
+
+
+class JudgeInvite(Base):
+    """A single-use link that seats whoever accepts it on an event's judge panel."""
+
+    __tablename__ = "judge_invites"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), index=True)
+    token: Mapped[str] = mapped_column(String, unique=True, index=True)
+    # When set, only an account with this email may accept the invite.
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    track_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    accepted_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    event: Mapped[Event] = relationship()
 
 
 class JudgeAssignment(Base):
@@ -296,8 +368,15 @@ class JudgeAssignment(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
     judge_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    # Label for a review round ("Round 1", "auto"): shows and exports who was
+    # handed what, and when.
+    batch: Mapped[str | None] = mapped_column(String, nullable=True)
+    assigned_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow, nullable=True)
 
-    judge: Mapped[User] = relationship(back_populates="judge_assignments")
+    judge: Mapped[User] = relationship(back_populates="judge_assignments", foreign_keys=[judge_id])
     project: Mapped[Project] = relationship(back_populates="judge_assignments")
 
 
@@ -310,6 +389,10 @@ class Score(Base):
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     criteria: Mapped[dict] = mapped_column(JSON)
     comment: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
 
     judge: Mapped[User] = relationship(back_populates="scores")
     project: Mapped[Project] = relationship(back_populates="scores")

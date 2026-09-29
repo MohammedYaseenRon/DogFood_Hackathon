@@ -12,6 +12,8 @@ from app.routes import (
     export,
     invites,
     judge,
+    judge_invites,
+    judging_admin,
     organizer,
     participant,
     projects,
@@ -54,6 +56,8 @@ app.include_router(events.router)
 app.include_router(teams.router)
 app.include_router(invites.router)
 app.include_router(organizer.router)
+app.include_router(judging_admin.router)
+app.include_router(judge_invites.router)
 app.include_router(admin.router)
 app.include_router(participant.router)
 

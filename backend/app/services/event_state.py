@@ -108,6 +108,26 @@ def submission_block_reason(event: Event, now: datetime | None = None) -> str | 
     return None
 
 
+def scoring_block_reason(event: Event, now: datetime | None = None) -> str | None:
+    """Why a judge can't score right now, or None when scoring is open.
+
+    Scoring only starts once submissions are frozen, so a judge never scores a
+    project the team can still change underneath them.
+    """
+    current = now or _now()
+    if current <= event.submissions_close:
+        return "Scoring opens after the submission deadline."
+    if event.judging_starts and current < event.judging_starts:
+        return "Judging has not started yet."
+    if event.judging_ends and current >= event.judging_ends:
+        return "Judging has closed. Scores are locked."
+    return None
+
+
+def can_score(event: Event, now: datetime | None = None) -> bool:
+    return scoring_block_reason(event, now) is None
+
+
 def event_state_payload(event: Event) -> dict:
     phase = compute_event_phase(event)
     return {
@@ -115,6 +135,7 @@ def event_state_payload(event: Event) -> dict:
         "registrationOpen": can_register(event),
         "teamFormationOpen": can_form_team(event),
         "submissionsOpen": can_submit(event),
+        "scoringOpen": can_score(event),
         "submissionsClose": _iso(event.submissions_close),
         "serverTime": _iso(_now()),
     }

@@ -54,6 +54,10 @@ python dog_food/run.py .dogfood.toml > acceptance-report.txt
 
 T1 + T2 verified. See `acceptance-report.txt` and `.dogfood.toml` for routes and test session cookies.
 
+- Judging (panel, invites, assignment, rubric, isolation, progress, exports): [JUDGING.md](JUDGING.md)
+- Cross-judge normalization, defended and run on the fixtures: [NORMALIZATION.md](NORMALIZATION.md)
+  (`cd backend && python -m app.normalization_report`)
+
 ## Dev startup (Windows)
 
 ```powershell
@@ -140,7 +144,9 @@ pytest
 | `/organizer/event/new` | Create an event (dates, tracks, prizes, custom submission questions) |
 | `/organizer/events/:slug` | Event overview: teams, drafts and submissions |
 | `/organizer/events/:slug/edit` | Edit an event |
-| `/judging` | Judge scoring workspace |
+| `/organizer/events/:slug/judging` | Judging console: live progress, judge panel and invites, batch / automatic assignment, rubric, normalized results, CSV exports |
+| `/judge-invite/:token` | Judge invite acceptance |
+| `/judging` | Judge scoring workspace (only assigned projects inside the judge's tracks) |
 | `/admin` | Users (roles, suspend), platform stats, audit log |
 
 ## Submission and deadline rules (T1)
@@ -153,5 +159,5 @@ All calendar checks live in `backend/app/services/event_state.py`, so the API an
   after the deadline returns `403`; nothing is enforced only in the browser.
 - A team has one project per event. A **draft** needs only a name and track and is hidden from the public.
   **Submitting** additionally requires a description, a repository URL and every required organizer question.
-- Organizer question answers are visible to the team, organizers and judges, never on the public page.
+- Organizer question answers are visible to the team, organizers and the judges assigned to that project, never on the public page.
 - All URLs must be `http(s)://`; up to 8 screenshot URLs and 15 tech tags.

@@ -223,13 +223,19 @@ export type ParticipantEntry = {
   } | null;
 };
 
-export type RubricCriterion = { name: string; weight: number };
+export type RubricCriterion = { name: string; weight: number; description?: string | null };
 
 export type JudgeAssignment = {
   projectId: string;
   title: string;
+  tagline?: string | null;
   summary: string;
   trackName: string;
+  eventSlug?: string;
+  repoUrl?: string | null;
+  liveUrl?: string | null;
+  videoUrl?: string | null;
+  batch?: string | null;
   scored: boolean;
   criteria?: Record<string, number>;
   comment?: string;
@@ -250,6 +256,8 @@ export type ScoreSubmitPayload = {
   comment?: string;
 };
 
+export type JudgeStatus = "unassigned" | "not_started" | "in_progress" | "done";
+
 export type OrganizerJudgeProgress = {
   id: string;
   name: string;
@@ -258,6 +266,134 @@ export type OrganizerJudgeProgress = {
   completed: number;
   remaining?: number;
   percent: number;
+  status?: JudgeStatus;
+  tracks?: string[];
+  trackIds?: string[];
+  lastActivity?: string | null;
+};
+
+export type JudgeEvent = EventRef & {
+  tracks: string[];
+  allTracks: boolean;
+  rubric: RubricCriterion[];
+  scoringOpen: boolean;
+  scoringBlockReason: string | null;
+  judgingEnds: string | null;
+  assigned: number;
+  completed: number;
+};
+
+export type JudgingProgress = {
+  judges: OrganizerJudgeProgress[];
+  totals: {
+    panel: number;
+    assignments: number;
+    completed: number;
+    remaining: number;
+    percent: number;
+    notStarted: number;
+    done: number;
+    unassigned: number;
+    projectsWithoutReviews: number;
+  };
+};
+
+export type JudgingOverview = {
+  event: EventRef;
+  tracks: Array<{ id: string; name: string }>;
+  scoringOpen: boolean;
+  scoringBlockReason: string | null;
+  rubric: RubricCriterion[];
+  rubricLocked: boolean;
+  progress: JudgingProgress;
+};
+
+export type JudgeInviteInfo = {
+  id: string;
+  token: string;
+  url: string;
+  email: string | null;
+  trackIds: string[];
+  tracks: string[];
+  expiresAt: string;
+  expired: boolean;
+  createdAt: string;
+};
+
+export type JudgeInvitePreview = {
+  event: EventRef;
+  tracks: string[];
+  allTracks: boolean;
+  email: string | null;
+  expiresAt: string;
+  alreadyJudge: boolean;
+};
+
+export type AssignmentRow = {
+  judgeId: string;
+  judgeName: string;
+  projectId: string;
+  title: string;
+  track: string | null;
+  batch: string | null;
+  assignedAt: string | null;
+  scored: boolean;
+};
+
+export type AssignmentCoverage = {
+  projectId: string;
+  title: string;
+  track: string | null;
+  trackId: string | null;
+  assigned: number;
+  scored: number;
+  duplicateOf: string | null;
+};
+
+export type AutoAssignResult = {
+  planned: number;
+  created?: number;
+  dryRun: boolean;
+  batch: string;
+  shortfalls: Array<{ projectId: string; title: string; track: string | null; wanted: number; have: number }>;
+  load: Array<{ judgeId: string; name: string; assigned: number }>;
+};
+
+export type ResultRow = {
+  rank: number | null;
+  trackRank: number | null;
+  rawRank: number | null;
+  projectId: string;
+  title: string;
+  teamName: string;
+  track: string | null;
+  reviews: number;
+  rawMean: number | null;
+  normalized: number | null;
+  disagreement: number | null;
+  lowConfidence: boolean;
+  duplicateOf: string | null;
+};
+
+export type JudgeCalibration = {
+  id: string;
+  name: string;
+  reviews: number;
+  rawMean: number;
+  rawSpread: number;
+  leniency: number;
+  spread: number;
+  flat: boolean;
+};
+
+export type EventResults = {
+  event: EventRef;
+  method: { name: string; summary: string; priorStrength: number; spreadFloor: number; lowConfidenceBelow: number };
+  rubric: RubricCriterion[];
+  eventMean: number;
+  eventSpread: number;
+  projects: ResultRow[];
+  judges: JudgeCalibration[];
 };
 
 export type OrganizerStats = {
@@ -269,6 +405,9 @@ export type OrganizerStats = {
   completionPercent: number;
   judgesComplete?: number;
   judgesBehind?: number;
+  judgesNotStarted?: number;
+  projectsWithoutReviews?: number;
+  panelSize?: number;
   averageJudgePercent?: number;
   event?: (EventRef & { counts: EventCounts }) | null;
   judgeProgress: OrganizerJudgeProgress[];
@@ -606,8 +745,12 @@ export async function saveProjectClient(payload: ProjectPayload, existingId?: st
 // Judging (T2)
 // ---------------------------------------------------------------------------
 
-export async function fetchJudgeAssignmentsClient(): Promise<JudgeAssignment[]> {
-  return (await getOrNull<JudgeAssignment[]>("/api/judge/assignments")) ?? [];
+export async function fetchJudgeEventsClient(): Promise<JudgeEvent[] | null> {
+  return getOrNull<JudgeEvent[]>("/api/judge/events");
+}
+
+export async function fetchJudgeAssignmentsClient(event?: string): Promise<JudgeAssignment[]> {
+  return (await getOrNull<JudgeAssignment[]>(`/api/judge/assignments${qs({ event })}`)) ?? [];
 }
 
 export async function fetchJudgeScoresClient(): Promise<JudgeScore[]> {
@@ -638,6 +781,110 @@ export async function fetchOrganizerEventsClient(): Promise<OrganizerEvent[] | n
 
 export function fetchEventSubmissionsClient(slug: string) {
   return request<EventSubmissions>(`/api/organizer/events/${encodeURIComponent(slug)}/submissions`);
+}
+
+// ---------------------------------------------------------------------------
+// Organizer judging (T2)
+// ---------------------------------------------------------------------------
+
+const judgingBase = (slug: string) => `/api/organizer/events/${encodeURIComponent(slug)}`;
+
+export function fetchJudgingOverviewClient(slug: string) {
+  return request<JudgingOverview>(`${judgingBase(slug)}/judging`);
+}
+
+export function fetchJudgePanelClient(slug: string) {
+  return request<{ judges: OrganizerJudgeProgress[]; invites: JudgeInviteInfo[] }>(`${judgingBase(slug)}/judges`);
+}
+
+export function createJudgeInviteClient(
+  slug: string,
+  body: { email?: string; trackIds: string[]; expiresInDays?: number },
+) {
+  return request<JudgeInviteInfo>(`${judgingBase(slug)}/judges/invites`, { method: "POST", body });
+}
+
+export function revokeJudgeInviteClient(slug: string, inviteId: string) {
+  return request<{ ok: boolean }>(`${judgingBase(slug)}/judges/invites/${inviteId}`, { method: "DELETE" });
+}
+
+export function seatJudgeClient(slug: string, body: { email: string; trackIds: string[] }) {
+  return request<{ ok: boolean }>(`${judgingBase(slug)}/judges`, { method: "POST", body });
+}
+
+export function updateJudgeScopeClient(slug: string, judgeId: string, trackIds: string[]) {
+  return request<{ ok: boolean; withdrawn: number }>(`${judgingBase(slug)}/judges/${encodeURIComponent(judgeId)}`, {
+    method: "PATCH",
+    body: { trackIds },
+  });
+}
+
+export function removeJudgeClient(slug: string, judgeId: string) {
+  return request<{ ok: boolean }>(`${judgingBase(slug)}/judges/${encodeURIComponent(judgeId)}`, { method: "DELETE" });
+}
+
+export function fetchAssignmentsClient(slug: string) {
+  return request<{ assignments: AssignmentRow[]; projects: AssignmentCoverage[] }>(`${judgingBase(slug)}/assignments`);
+}
+
+export function assignBatchClient(slug: string, body: { judgeIds: string[]; projectIds: string[]; batch?: string }) {
+  return request<{ created: number; batch: string; skipped: Array<{ judgeId: string; projectId: string; reason: string }> }>(
+    `${judgingBase(slug)}/assignments`,
+    { method: "POST", body },
+  );
+}
+
+export function autoAssignClient(
+  slug: string,
+  body: { reviewsPerProject: number; maxPerJudge?: number | null; batch?: string; dryRun?: boolean },
+) {
+  return request<AutoAssignResult>(`${judgingBase(slug)}/assignments/auto`, { method: "POST", body });
+}
+
+export function unassignClient(slug: string, judgeId: string, projectId: string) {
+  return request<{ ok: boolean }>(`${judgingBase(slug)}/assignments`, {
+    method: "DELETE",
+    body: { judgeId, projectId },
+  });
+}
+
+export function fetchEventRubricClient(slug: string) {
+  return request<{ criteria: RubricCriterion[]; locked: boolean }>(`${judgingBase(slug)}/rubric`);
+}
+
+export function saveEventRubricClient(slug: string, criteria: RubricCriterion[]) {
+  return request<{ criteria: RubricCriterion[]; locked: boolean }>(`${judgingBase(slug)}/rubric`, {
+    method: "PUT",
+    body: { criteria },
+  });
+}
+
+export function fetchEventResultsClient(slug: string) {
+  return request<EventResults>(`${judgingBase(slug)}/results`);
+}
+
+export function fetchJudgeInviteClient(token: string) {
+  return request<JudgeInvitePreview>(`/api/judge-invites/${encodeURIComponent(token)}`);
+}
+
+export function acceptJudgeInviteClient(token: string) {
+  return request<{ ok: boolean; event: EventRef }>(`/api/judge-invites/${encodeURIComponent(token)}/accept`, {
+    method: "POST",
+  });
+}
+
+export const EXPORT_KINDS = [
+  { kind: "registrations", label: "Registrations", hint: "Everyone who signed up, and their team" },
+  { kind: "teams", label: "Teams", hint: "Members and project status per team" },
+  { kind: "submissions", label: "Submissions", hint: "Every project with all fields, drafts included" },
+  { kind: "judges", label: "Judge panel", hint: "Scope and progress per judge" },
+  { kind: "assignments", label: "Assignments", hint: "Who reviews what, by batch" },
+  { kind: "scores", label: "Raw scores", hint: "One row per judge and project" },
+  { kind: "results", label: "Results", hint: "Raw and normalized standings" },
+] as const;
+
+export function exportUrl(slug: string, kind: string) {
+  return `/api/export.csv?event=${encodeURIComponent(slug)}&kind=${kind}`;
 }
 
 // ---------------------------------------------------------------------------

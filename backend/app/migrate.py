@@ -101,3 +101,25 @@ def run_migrations(engine: Engine) -> None:
             ]:
                 if col not in cols:
                     _add_column(conn, "projects", col, ddl)
+
+    if "rubric_criteria" in tables:
+        cols = _column_names(inspector, "rubric_criteria")
+        with engine.begin() as conn:
+            if "description" not in cols:
+                _add_column(conn, "rubric_criteria", "description", "VARCHAR")
+            if "display_order" not in cols:
+                _add_column(conn, "rubric_criteria", "display_order", "INTEGER DEFAULT 0")
+
+    if "judge_assignments" in tables:
+        cols = _column_names(inspector, "judge_assignments")
+        with engine.begin() as conn:
+            for col, ddl in [("batch", "VARCHAR"), ("assigned_by", "VARCHAR"), ("assigned_at", "DATETIME")]:
+                if col not in cols:
+                    _add_column(conn, "judge_assignments", col, ddl)
+
+    if "scores" in tables:
+        cols = _column_names(inspector, "scores")
+        with engine.begin() as conn:
+            for col in ("created_at", "updated_at"):
+                if col not in cols:
+                    _add_column(conn, "scores", col, "DATETIME")

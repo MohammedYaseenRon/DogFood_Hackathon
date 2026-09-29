@@ -104,9 +104,14 @@ export function ScoreForm({
             <legend className="sr-only">
               {item.name}, weight {item.weight}
             </legend>
-            <div className="flex items-baseline gap-2" aria-hidden>
-              <span className="text-sm font-semibold text-ink capitalize">{item.name}</span>
-              <span className="font-mono text-[11px] text-zinc-400">×{item.weight}</span>
+            <div className="min-w-0" aria-hidden>
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold text-ink capitalize">{item.name}</span>
+                <span className="font-mono text-[11px] text-zinc-400">×{item.weight}</span>
+              </div>
+              {item.description ? (
+                <p className="mt-0.5 max-w-sm text-xs leading-relaxed text-zinc-500">{item.description}</p>
+              ) : null}
             </div>
             <div className="flex gap-1.5">
               {SCALE.map((value) => {

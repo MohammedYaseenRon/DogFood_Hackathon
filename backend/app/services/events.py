@@ -177,8 +177,8 @@ def serialize_event(event: Event) -> dict:
             for prize in sorted(event.prizes, key=lambda p: p.rank)
         ],
         "rubric": [
-            {"name": criterion.name, "weight": criterion.weight}
-            for criterion in sorted(event.rubric, key=lambda c: c.name)
+            {"name": criterion.name, "description": criterion.description, "weight": criterion.weight}
+            for criterion in sorted(event.rubric, key=lambda c: (c.display_order, c.name))
         ],
         "questions": [serialize_question(q) for q in event.custom_questions],
     }
@@ -434,8 +434,8 @@ def _ensure_rubric(db: Session, event: Event) -> None:
     has_rubric = db.query(RubricCriterion).filter(RubricCriterion.event_id == event.id).first()
     if has_rubric:
         return
-    for name in DEFAULT_RUBRIC:
-        db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
+    for order, name in enumerate(DEFAULT_RUBRIC):
+        db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0, display_order=order))
 
 
 def ensure_registration(db: Session, event: Event, user: User) -> EventRegistration:

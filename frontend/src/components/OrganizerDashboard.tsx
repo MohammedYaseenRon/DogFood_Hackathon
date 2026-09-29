@@ -267,6 +267,9 @@ export function OrganizerDashboard() {
               </select>
             </label>
             <div className="flex flex-wrap gap-2">
+              <ButtonLink href={`/organizer/events/${eventSlug}/judging`} variant="signal" size="sm">
+                Judging console
+              </ButtonLink>
               <a
                 href={`/api/export.csv?event=${encodeURIComponent(eventSlug)}`}
                 className="inline-flex h-9 items-center justify-center rounded-lg bg-ink px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700"

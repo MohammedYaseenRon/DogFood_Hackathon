@@ -6,18 +6,16 @@ from app.auth import require_role
 from app.database import get_db
 from app.models import (
     Event,
-    JudgeAssignment,
     Project,
     Role,
     RubricCriterion,
-    Score,
     Team,
     TeamMember,
-    User,
 )
 from app.services.audit import log_action
 from app.services.event_state import can_submit
 from app.services.events import event_counts, iso, resolve_event, serialize_event_ref
+from app.services.judging import event_has_scores, event_progress
 
 router = APIRouter(prefix="/api/organizer", tags=["organizer"])
 
@@ -95,53 +93,25 @@ def event_submissions(slug: str, request: Request, db: Session = Depends(get_db)
 
 @router.get("/stats")
 def organizer_stats(request: Request, event: str | None = None, db: Session = Depends(get_db)):
+    """Live judging progress for one event, built from its judge panel."""
     require_role(db, request, [Role.ORGANIZER, Role.ADMIN])
     target = resolve_event(db, event)
-    project_ids = _event_project_ids(db, target)
-
-    assignments = (
-        db.query(JudgeAssignment).filter(JudgeAssignment.project_id.in_(project_ids)).all()
-        if project_ids
-        else []
-    )
-    scores = (
-        db.query(Score).filter(Score.project_id.in_(project_ids)).all() if project_ids else []
-    )
-    scored_pairs = {(score.judge_id, score.project_id) for score in scores}
-
-    judges = db.query(User).filter(User.role == Role.JUDGE).order_by(User.name.asc()).all()
-    judge_progress = []
-    for judge in judges:
-        assigned = [a for a in assignments if a.judge_id == judge.id]
-        completed = sum(1 for a in assigned if (judge.id, a.project_id) in scored_pairs)
-        total = len(assigned)
-        judge_progress.append(
-            {
-                "id": judge.fixture_id or judge.id,
-                "name": judge.name or judge.email,
-                "email": judge.email,
-                "assigned": total,
-                "completed": completed,
-                "remaining": max(total - completed, 0),
-                "percent": round((completed / total) * 100, 1) if total else 0,
-            }
-        )
-
-    total_assignments = len(assignments)
-    total_scored = sum(item["completed"] for item in judge_progress)
-    active = [item for item in judge_progress if item["assigned"]]
+    progress = event_progress(db, target)
+    active = [row for row in progress["judges"] if row["assigned"]]
+    totals = progress["totals"]
 
     return {
-        "totalProjects": len(project_ids),
+        "totalProjects": len(_event_project_ids(db, target)),
         "totalJudges": len(active),
-        "totalAssignments": total_assignments,
-        "totalScores": total_scored,
-        "remainingAssignments": max(total_assignments - total_scored, 0),
-        "completionPercent": round((total_scored / total_assignments) * 100, 1)
-        if total_assignments
-        else 0.0,
-        "judgesComplete": sum(1 for item in active if item["completed"] >= item["assigned"]),
+        "panelSize": totals["panel"],
+        "totalAssignments": totals["assignments"],
+        "totalScores": totals["completed"],
+        "remainingAssignments": totals["remaining"],
+        "completionPercent": totals["percent"],
+        "judgesComplete": totals["done"],
         "judgesBehind": sum(1 for item in active if item["percent"] < 50),
+        "judgesNotStarted": totals["notStarted"],
+        "projectsWithoutReviews": totals["projectsWithoutReviews"],
         "averageJudgePercent": round(sum(item["percent"] for item in active) / len(active), 1)
         if active
         else 0,
@@ -192,6 +162,11 @@ def update_rubric(
         )
         if row:
             row.weight = weight
+        elif event_has_scores(db, target):
+            raise HTTPException(
+                status_code=409,
+                detail="Scoring has started, so criteria can't be added. Weights can still change.",
+            )
         else:
             db.add(RubricCriterion(event_id=target.id, name=name, weight=weight))
 

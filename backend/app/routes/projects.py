@@ -31,6 +31,7 @@ from app.models import (
 )
 from app.services.audit import log_action
 from app.services.event_state import can_submit, submission_block_reason
+from app.services.judging import judge_can_access_project
 from app.services.events import (
     default_event,
     get_event_or_404,
@@ -468,7 +469,11 @@ def get_project(project_id: str, request: Request, db: Session = Depends(get_db)
 
     user = get_session_user(db, request)
     is_member = _is_team_member(project, user)
-    is_staff = bool(user and user.role in {Role.ORGANIZER, Role.ADMIN, Role.JUDGE})
+    # Judges are staff only for projects they're assigned inside their tracks;
+    # everywhere else they see exactly what a visitor sees.
+    is_staff = bool(user and user.role in {Role.ORGANIZER, Role.ADMIN}) or judge_can_access_project(
+        db, user, project
+    )
     event = project.team.event
     publicly_visible = project.status == ProjectStatus.SUBMITTED and event and event.published
 

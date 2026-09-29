@@ -10,6 +10,8 @@ from app.database import SessionLocal, init_db
 from app.models import (
     CustomQuestion,
     Event,
+    EventJudge,
+    EventJudgeTrack,
     JudgeAssignment,
     Prize,
     Project,
@@ -26,9 +28,16 @@ from app.models import (
 )
 
 from app.config import TEST_SESSIONS, seed_password
+from app.services.events import ensure_registration
 from app.services.passwords import hash_password
 
 DEMO_EVENT_SLUG = "dogfood-open-hack"
+
+RUBRIC_DESCRIPTIONS = {
+    "functionality": "Does it work? Can you run the demo and do the main thing it promises?",
+    "quality": "Code, design and polish: would you be comfortable shipping or maintaining it?",
+    "innovation": "Is the idea or approach new, or a notably better take on a known problem?",
+}
 
 
 def fixtures_path() -> Path:
@@ -90,8 +99,10 @@ def get_or_create_event(db: Session, fixture: dict) -> Event:
         "event_starts": submissions_close - timedelta(days=3),
         "event_ends": submissions_close,
         "judging_starts": submissions_close + timedelta(hours=1),
-        "judging_ends": submissions_close + timedelta(days=14),
-        "results_at": submissions_close + timedelta(days=21),
+        # Left open so the fixture event stays in its judging phase whenever the
+        # demo is run; an organizer can close judging from the event settings.
+        "judging_ends": None,
+        "results_at": None,
     }
 
     if event is None:
@@ -173,8 +184,16 @@ def get_or_create_demo_event(db: Session, organizer_id: str) -> Event:
             Prize(event_id=event.id, name="Best accessibility hack", amount="$250", rank=2, track_id=tracks[1].id),
         ]
     )
-    for name in ("functionality", "quality", "innovation"):
-        db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
+    for order, name in enumerate(("functionality", "quality", "innovation")):
+        db.add(
+            RubricCriterion(
+                event_id=event.id,
+                name=name,
+                weight=1.0,
+                description=RUBRIC_DESCRIPTIONS[name],
+                display_order=order,
+            )
+        )
     db.add_all(
         [
             CustomQuestion(
@@ -227,14 +246,17 @@ def seed() -> None:
         for score in fixtures["scores"]:
             criterion_names.update(score["criteria"].keys())
 
-        for name in criterion_names:
+        for order, name in enumerate(sorted(criterion_names)):
             row = (
                 db.query(RubricCriterion)
                 .filter(RubricCriterion.event_id == event.id, RubricCriterion.name == name)
                 .first()
             )
             if not row:
-                db.add(RubricCriterion(event_id=event.id, name=name, weight=1.0))
+                row = RubricCriterion(event_id=event.id, name=name, weight=1.0)
+                db.add(row)
+            row.display_order = order
+            row.description = row.description or RUBRIC_DESCRIPTIONS.get(name)
 
         default_prizes = [
             ("Grand prize", "$2,500", 1, None),
@@ -309,6 +331,8 @@ def seed() -> None:
             for index, member_email in enumerate(team["members"]):
                 participant = get_or_create_user(db, member_email, role=Role.PARTICIPANT)
                 user_map[member_email] = participant.id
+                # Being on a fixture team means having registered for the event.
+                ensure_registration(db, event, participant)
                 if first_participant_id is None:
                     first_participant_id = participant.id
                 if index == 0:
@@ -382,8 +406,26 @@ def seed() -> None:
                         JudgeAssignment(
                             judge_id=user_map[judge["id"]],
                             project_id=project_map[project["id"]],
+                            batch="fixtures",
                         )
                     )
+
+        # Every fixture judge sits on the event panel, scoped to their tracks.
+        for judge in fixtures["judges"]:
+            user_id = user_map[judge["id"]]
+            seat = (
+                db.query(EventJudge)
+                .filter(EventJudge.event_id == event.id, EventJudge.user_id == user_id)
+                .first()
+            )
+            if not seat:
+                seat = EventJudge(event_id=event.id, user_id=user_id, invited_by=organizer.id)
+                db.add(seat)
+                db.flush()
+            have = {row.track_id for row in seat.tracks}
+            for track_fixture in judge["tracks"]:
+                if track_map[track_fixture] not in have:
+                    seat.tracks.append(EventJudgeTrack(track_id=track_map[track_fixture]))
 
         for score in fixtures["scores"]:
             judge_id = user_map.get(score["judge"])
